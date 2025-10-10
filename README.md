@@ -16,11 +16,11 @@ yEditor is an open-source project for creating a JavaScript-based WYSIWYG conten
 
 ### Local Installation
 
-1.  Download the project files (`editor.js` and the `lang` directory) and add them to your project.
+1.  Download the project files and place the `src` and `dist` directories in your project.
 2.  Ensure your HTML page includes the JS file:
 
     ```html
-    <script src="editor.js"></script>
+    <script src="src/editor.js"></script>
     ```
 
 3.  Add a `<textarea>` to your page with a unique `id`.
@@ -47,24 +47,25 @@ yEditor is an open-source project for creating a JavaScript-based WYSIWYG conten
 
 ### CDN Usage (Recommended)
 
-For the quickest setup, you can use yEditor directly from the jsDelivr CDN. This method doesn't require you to host any files.
+For the quickest setup, you can use yEditor directly from the jsDelivr CDN. This method doesn't require you to host any files. Choose the version that best suits your needs.
 
-1.  Add the editor script to your HTML file.
+#### For Production (Minified)
 
-    ```html
-    <script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@latest/editor.js"></script>
-    ```
+Use the minified file for the best performance on a live website.
 
-2.  Initialize the editor on your `<textarea>`:
+```html
+<script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@latest/dist/editor.min.js"></script>
+```
 
-    ```html
-    <textarea id="my-editor"></textarea>
+#### For Development (Source)
 
-    <script>
-        yEditor.init('#my-editor');
-    </script>
-    ```
-The editor will automatically load the required language files from the CDN.
+If you are debugging or developing, you can use the unminified source file.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@latest/src/editor.js"></script>
+```
+
+The editor will automatically load all required assets (like CSS and language files) from the CDN relative to the script's location.
 
 ## Built-in API Integrations
 

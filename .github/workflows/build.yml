@@ -11,6 +11,10 @@ jobs:
   build:
     runs-on: ubuntu-latest # The type of virtual machine to run the job on
 
+    # Grant permissions for the action to write to the repository
+    permissions:
+      contents: write
+
     steps:
       # Step 1: Check out your repository code
       - name: Checkout repository
