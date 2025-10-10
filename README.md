@@ -212,6 +212,4 @@ This project was made possible by the following open-source libraries and resour
 - **DOMPurify** for robust HTML sanitization and XSS protection.
 - **Clarity Icons** and **Google Material Icons** for the clean and intuitive toolbar icons.
 - **Unsplash** for the beautiful placeholder images used in the demo.
-
-A big thank you to their creators and maintainers.
 - **Gemini Code Assist** for development assistance and code suggestions.
