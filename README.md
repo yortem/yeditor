@@ -57,14 +57,6 @@ Use the minified file for the best performance on a live website.
 <script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@latest/dist/editor.min.js"></script>
 ```
 
-#### For Development (Source)
-
-If you are debugging or developing, you can use the unminified source file.
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@latest/src/editor.js"></script>
-```
-
 The editor will automatically load all required assets (like CSS and language files) from the CDN relative to the script's location.
 
 ## Built-in API Integrations
