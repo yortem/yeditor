@@ -1407,3 +1407,5 @@ const yEditor = {
         });
     }
 };
+
+window.yEditor = yEditor;
