@@ -1,0 +1,8 @@
+[
+    { "title": "דף הבית", "url": "/" },
+    { "title": "אודותינו", "url": "/about" },
+    { "title": "צור קשר", "url": "/contact" },
+    { "title": "הבלוג שלנו", "url": "/blog" },
+    { "title": "מדיניות פרטיות", "url": "/privacy-policy" },
+    { "title": "שאלות נפוצות (FAQ)", "url": "/faq" }
+]

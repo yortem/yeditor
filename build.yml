@@ -1,0 +1,31 @@
+# This is a GitHub Action workflow that will automatically build and minify the editor.
+# It runs every time you push changes to the 'main' branch.
+
+name: Build and Minify Editor
+
+on:
+  push:
+    branches: [ "main" ] # Triggers the workflow on push events to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # The type of virtual machine to run the job on
+
+    steps:
+      # Step 1: Check out your repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Run the build command using esbuild
+      - name: Build and Minify JavaScript
+        run: npx esbuild src/editor.js --bundle --minify --outfile=dist/editor.min.js
+
+      # Step 3: Commit the new 'dist/editor.min.js' file back to the repository
+      - name: Commit and Push if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "build: Minify editor.js"
+          file_pattern: dist/editor.min.js # Only commit if this file changes
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "actions@github.com"
+          commit_author: "GitHub Actions <actions@github.com>"

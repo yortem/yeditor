@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Content Editor</title>
+        <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main>
+        <h1>JS-Based Content Editor</h1>
+        <p>This is a standard `textarea` that the script will turn into a rich content editor.</p>
+
+        <textarea class="y-editor" name="content"></textarea>
+    </main>
+
+    <script src="src/editor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const editorTextarea = document.querySelector('.y-editor');
+
+            // Set initial example content
+            editorTextarea.value = `
+                <h2>Welcome to yEditor!</h2>
+                <p>This is a simple and flexible content editor. You can start editing the text here.</p>
+                <ul>
+                    <li>Supports English and Hebrew.</li>
+                    <li>Light and dark themes.</li>
+                    <li>Extensible via API.</li>
+                </ul>
+            `;
+
+            // Initialize the editor
+            yEditor.init('.y-editor', {
+                lang: 'en',
+                direction: 'ltr',
+                theme: 'light',
+                quickLinksApiUrl: 'links-api.json',
+                imageGalleryApiUrl: 'images-api.json',
+                fileBrowserUrl: 'file-browser.html' // Add the path to your file browser
+            });
+        });
+    </script>
+
+</body>
+</html>

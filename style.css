@@ -1,0 +1,53 @@
+/* עיצוב כללי */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 20px;
+    background-color: #f4f4f9;
+    color: #333;
+    display: flex; /* שימוש ב-flexbox כדי למרכז את התוכן */
+    justify-content: center; /* מרכוז אופקי */
+    align-items: flex-start; /* יישור למעלה אנכית */
+    min-height: 100vh; /* ודא שהגוף תופס את כל גובה המסך */
+}
+
+main {
+    /* יצירת ה"כרטיס" המרכזי */
+    max-width: 800px; /* הגבלת רוחב מקסימלי */
+    width: 100%; /* ודא שהוא תופס את כל הרוחב הזמין עד למקסימום */
+    background-color: #fff; /* רקע לבן לתוכן */
+    padding: 30px; /* ריווח פנימי */
+    border-radius: 8px; /* פינות מעוגלות */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* צל עדין */
+
+    /* סידור התוכן הפנימי */
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* רווח בין האלמנטים */
+}
+
+main img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px; /* פינות מעוגלות לתמונה */
+    align-self: center; /* מרכוז התמונה */
+    margin-bottom: 1rem; /* רווח נוסף מתחת לתמונה */
+}
+
+/* עיצוב כפתור שליחת הטופס */
+main form button[type="submit"] {
+    background-color: #4c51bf; /* indigo-600 */
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: block;
+    margin-inline-start: auto; /* דוחף את הכפתור לקצה (ימין ב-LTR, שמאל ב-RTL) */
+}
+
+main form button[type="submit"]:hover {
+    background-color: #434190;
+}
