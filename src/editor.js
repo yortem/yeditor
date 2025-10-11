@@ -127,16 +127,16 @@ const yEditor = {
 
         // Try loading the minified version first (for production/CDN)
         let cssUrl = `${this._scriptPath}/editor.min.css`;
+        let response;
         try {
-            let response = await fetch(cssUrl);
+            response = await fetch(cssUrl);
             if (!response.ok) {
                 // If minified version fails, fall back to the standard version (for development)
                 cssUrl = `${this._scriptPath}/editor.css`;
                 response = await fetch(cssUrl);
             }
-
             if (!response.ok) {
-                throw new Error('Could not find editor.min.css or editor.css');
+                throw new Error(`Neither editor.min.css nor editor.css were found at ${this._scriptPath}`);
             }
             this._cssContent = await response.text();
         } catch (error) {
