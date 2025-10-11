@@ -40,6 +40,21 @@
                 imageGalleryApiUrl: 'images-api.json',
                 fileBrowserUrl: 'file-browser.html' // Add the path to your file browser
             });
+
+            // --- Example of listening to editor events ---
+            const editorContainer = document.querySelector('.yeditor-container');
+
+            editorContainer.addEventListener('yeditor-init', (e) => {
+                console.log('Editor initialized!', e.detail);
+            });
+
+            editorContainer.addEventListener('yeditor-change', (e) => {
+                console.log('Editor content changed:', e.detail.content);
+            });
+
+            editorContainer.addEventListener('yeditor-command-exec', (e) => {
+                console.log(`Command executed: ${e.detail.command}`, e.detail.value || '');
+            });
         });
     </script>
 

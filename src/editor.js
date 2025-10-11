@@ -76,6 +76,7 @@ const yEditor = {
         container.className = 'yeditor-container'; // Class for external reference if needed
         container.dataset.theme = config.theme; // Set theme attribute
         const shadowRoot = container.attachShadow({ mode: 'open' });
+        this._container = container; // Store container for event dispatching
         this._shadowRoot = shadowRoot; // Store shadowRoot for later access if needed
         this._textarea = textarea; // Store reference to original textarea
 
@@ -103,7 +104,7 @@ const yEditor = {
         textarea.parentNode.insertBefore(container, textarea);
 
         // 5. הגדר את האירועים
-        this.setupEventListeners(shadowRoot, toolbar, contentArea, textarea);
+        this.setupEventListeners(shadowRoot, toolbar, contentArea, textarea, container);
 
         // Hide link toolbar when clicking outside the editor
         document.addEventListener('click', (e) => {
@@ -120,6 +121,9 @@ const yEditor = {
                 });
             }
         });
+
+        // Dispatch init event
+        this._dispatchEvent('yeditor-init', { editor: container });
     },
 
     _loadCSS: async function() {
@@ -315,7 +319,7 @@ const yEditor = {
         return contentArea;
     },
 
-    setupEventListeners: function(shadowRoot, toolbar, contentArea, textarea) {
+    setupEventListeners: function(shadowRoot, toolbar, contentArea, textarea, container) {
         // Close dropdowns when clicking anywhere in the editor, except on a dropdown button itself
         shadowRoot.addEventListener('click', (e) => {
             // Check if the click was on the dropdown button to let the other listener handle the toggle
@@ -338,6 +342,9 @@ const yEditor = {
 
             const button = e.target.closest('button[data-command]');
             if (!button) return;
+
+            // Dispatch command execution event
+            this._dispatchEvent('yeditor-command-exec', { command: button.dataset.command, value: button.dataset.value });
 
             const { command, value } = button.dataset;
 
@@ -435,6 +442,7 @@ const yEditor = {
         contentArea.addEventListener('input', () => {
             // Sanitize content before assigning it to the textarea for saving
             textarea.value = DOMPurify.sanitize(contentArea.innerHTML);
+            this._dispatchEvent('yeditor-change', { content: textarea.value });
             this.updateDomPath(shadowRoot, contentArea);
             this.updateWordCount(shadowRoot, contentArea);
         });
@@ -488,6 +496,16 @@ const yEditor = {
                 this._handleTabInTable(e);
             }
         });
+
+        // Focus and blur events
+        contentArea.addEventListener('focus', () => {
+            this._dispatchEvent('yeditor-focus');
+        });
+
+        contentArea.addEventListener('blur', () => {
+            this._dispatchEvent('yeditor-blur');
+        });
+
     },
 
     // --- Modal Helper Functions ---
@@ -1411,6 +1429,15 @@ const yEditor = {
             okButton.onclick = () => { modal.remove(); resolve(selectedData); };
             cancelButton.onclick = () => { modal.remove(); resolve(null); };
         });
+    },
+
+    _dispatchEvent: function(eventName, detail = {}) {
+        if (!this._container) return;
+        this._container.dispatchEvent(new CustomEvent(eventName, {
+            bubbles: true,
+            composed: true, // Important for events to cross Shadow DOM boundaries
+            detail: detail
+        }));
     }
 };
 

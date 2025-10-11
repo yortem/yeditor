@@ -137,7 +137,39 @@ selectableItems.forEach(item => {
     });
 });
 ```
+## Events API 
 
+yEditor dispatches several custom events on its container element (.yeditor-container) to allow developers to react to user interactions. You can listen to these events using standard addEventListener.Example: 
+
+```javascript 
+const editorContainer = document.querySelector('.yeditor-container');
+editorContainer.addEventListener('yeditor-change', (event) => {
+
+console.log('The editor content has changed!');
+// The new HTML content is available in event.detail.content
+const newContent = event.detail.content;
+// You can now save it, validate it, etc.
+editorContainer.addEventListener('yeditor-focus', () => {
+
+console.log('Editor is focused.'); 
+});
+```
+### Available Events
+
+**`yeditor-init`**: Fired once when the editor is fully initialized and ready for use.
+* `event.detail`: `{ editor: HTMLElement }` - The editor's main container element.
+
+**`yeditor-change`**: Fired every time the content inside the editor is modified by the user.
+* `event.detail`: `{ content: string }` - The new, sanitized HTML content of the editor.
+
+**`yeditor-focus`**: Fired when the user focuses on the content-editable area.
+* `event.detail`: `{}`
+
+**`yeditor-blur`**: Fired when the user removes focus from the content-editable area.
+* `event.detail`: `{}`
+
+**`yeditor-command-exec`**: Fired when a toolbar command is executed (e.g., bold, insert link).
+* `event.detail`: `{ command: string, value: string|null }` - The command that was executed and its associated value, if any.
 
 ## Extensibility API
 
