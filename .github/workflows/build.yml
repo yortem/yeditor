@@ -20,16 +20,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Run the build command using esbuild
+      # Step 2: Run the build commands using esbuild
       - name: Build and Minify JavaScript
         run: npx esbuild src/editor.js --bundle --minify --outfile=dist/editor.min.js
 
-      # Step 3: Commit the new 'dist/editor.min.js' file back to the repository
+      - name: Build and Minify CSS
+        run: npx esbuild src/editor.css --minify --outfile=dist/editor.min.css
+
+      # Step 3: Copy language files to dist
+      - name: Copy language files
+        run: |
+          mkdir -p dist/lang
+          cp src/lang/*.json dist/lang/
+
+      # Step 4: Commit the new 'dist' files back to the repository
       - name: Commit and Push if changed
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "build: Minify editor.js"
-          file_pattern: dist/editor.min.js # Only commit if this file changes
+          commit_message: "build: Update dist folder with minified assets and languages"
+          file_pattern: dist/ # Commit any changes within the dist directory
           commit_user_name: "GitHub Actions"
           commit_user_email: "actions@github.com"
           commit_author: "GitHub Actions <actions@github.com>"

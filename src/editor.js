@@ -46,7 +46,7 @@ const yEditor = {
         // Determine script path once, relative to which other assets are loaded.
         if (!this._scriptPath) {
             // Find the script tag that loaded this script.
-            const scriptTag = document.querySelector('script[src*="editor.js"]');
+            const scriptTag = document.querySelector('script[src*="editor.js"], script[src*="editor.min.js"]');
             if (scriptTag) {
                 const src = scriptTag.src;
                 this._scriptPath = src.substring(0, src.lastIndexOf('/'));
@@ -123,14 +123,20 @@ const yEditor = {
     },
 
     _loadCSS: async function() {
-        if (this._cssContent) {
-            return;
-        }
+        if (this._cssContent) return;
+
+        // Try loading the minified version first (for production/CDN)
+        let cssUrl = `${this._scriptPath}/editor.min.css`;
         try {
-            const cssUrl = `${this._scriptPath}/editor.css`;
-            const response = await fetch(cssUrl);
+            let response = await fetch(cssUrl);
             if (!response.ok) {
-                throw new Error('editor.css not found');
+                // If minified version fails, fall back to the standard version (for development)
+                cssUrl = `${this._scriptPath}/editor.css`;
+                response = await fetch(cssUrl);
+            }
+
+            if (!response.ok) {
+                throw new Error('Could not find editor.min.css or editor.css');
             }
             this._cssContent = await response.text();
         } catch (error) {
