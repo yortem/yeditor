@@ -190,11 +190,12 @@ yEditor.registerButton({
         title: 'Search Product',
         label: 'Type a product name:',
         placeholder: 'e.g., Keyboard',
-        displayField: 'name', // Which field from the object to display in the search input after selection
+        displayField: 'name', // Which field from the object to display after selection
+        multiple: true,       // (Optional) Set to true to allow selecting multiple items
 
         // 3. Search function (can be a real API call)
         search: async (query) => {
-            const response = await fetch('https://api.example.com/products?q=' + query);
+            const response = await fetch(`https://api.example.com/products?q=${query}`);
             const products = await response.json();
             return products;
         },
@@ -209,11 +210,25 @@ yEditor.registerButton({
         }
     },
 
-    // 5. Function that builds the HTML to be inserted into the editor after selection
-    onInsert: (selectedItem) => {
-        return `<div class="product-embed">
-                    <strong>${selectedItem.name}</strong>
-                </div><p><br></p>`;
+    // 5. Function that builds the HTML to be inserted.
+    // It receives an array of items if `multiple: true` is set, or a single item otherwise.
+    onInsert: (selectedItems) => {
+        // Ensure selectedItems is always an array for consistent handling
+        const items = Array.isArray(selectedItems) ? selectedItems : [selectedItems];
+
+        if (items.length === 0) {
+            return '';
+        }
+
+        // If multiple items are selected, create a list
+        if (items.length > 1) {
+            const listItems = items.map(item => `<li>${item.name} (ID: ${item.id})</li>`).join('');
+            return `<ul>${listItems}</ul><p><br></p>`;
+        }
+
+        // If a single item is selected, create a custom embed
+        const item = items[0];
+        return `<div class="product-embed" data-id="${item.id}"><strong>${item.name}</strong></div><p><br></p>`;
     },
 
     // 6. (Optional) Edit configuration

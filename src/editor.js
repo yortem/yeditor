@@ -1362,10 +1362,19 @@ const yEditor = {
                 const savedRange = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
 
                 this._showCustomPrompt(config.prompt, {}).then(result => {
-                    if (result && savedRange) {
+                    if (!result || (Array.isArray(result) && result.length === 0)) {
+                        return; // Do nothing if no result or empty array for multiple selection
+                    }
+
+                    if (savedRange) {
                         selection.removeAllRanges();
                         selection.addRange(savedRange);
-                        const rawHtml = config.onInsert(result);
+
+                        // The onInsert function now needs to handle both a single object and an array of objects.
+                        // We can create a unified input for it.
+                        const itemsToInsert = Array.isArray(result) ? result : [result];
+                        const rawHtml = config.onInsert(itemsToInsert);
+
                         const sanitizedHtml = DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['style'] }); // Allow style attribute for custom embeds
                         document.execCommand('insertHTML', false, sanitizedHtml);
                     }
@@ -1379,6 +1388,13 @@ const yEditor = {
     _showCustomPrompt: function(promptConfig, initialData = {}) {
         return new Promise(resolve => {
             const body = document.createElement('div');
+            const isMultiple = promptConfig.multiple === true;
+
+            // Add a container for selected items if in multiple mode
+            if (isMultiple) {
+                body.innerHTML += `<div class="selected-items-container"></div>`;
+            }
+
             body.innerHTML = `
                 <label for="custom-search">${promptConfig.label}</label>
                 <input type="text" id="custom-search" placeholder="${promptConfig.placeholder}" autocomplete="off">
@@ -1396,8 +1412,11 @@ const yEditor = {
             const modal = this._createModal(promptConfig.title, body, footer);
             const searchInput = body.querySelector('#custom-search');
             requestAnimationFrame(() => searchInput.focus());
+
             const resultsContainer = body.querySelector('.search-results');
-            let selectedData = null;
+            const selectedItemsContainer = body.querySelector('.selected-items-container');
+            let selectedItems = []; // Use an array to store multiple items
+
             searchInput.value = initialData[promptConfig.displayField] || '';
 
             // Submit on Enter
@@ -1409,6 +1428,27 @@ const yEditor = {
                 }
             });
 
+            const renderSelectedItems = () => {
+                if (!selectedItemsContainer) return;
+                selectedItemsContainer.innerHTML = selectedItems.map((item, index) => `
+                    <span class="selected-item" data-index="${index}">
+                        ${item[promptConfig.displayField]}
+                        <button type="button" class="selected-item-remove" title="Remove">&times;</button>
+                    </span>
+                `).join('');
+            };
+
+            if (selectedItemsContainer) {
+                selectedItemsContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('selected-item-remove')) {
+                        const itemSpan = e.target.closest('.selected-item');
+                        const indexToRemove = parseInt(itemSpan.dataset.index, 10);
+                        selectedItems.splice(indexToRemove, 1);
+                        renderSelectedItems();
+                    }
+                });
+            }
+
             searchInput.addEventListener('input', async () => {
                 const query = searchInput.value.trim().toLowerCase();
                 if (query.length < 2) { resultsContainer.innerHTML = ''; return; }
@@ -1419,14 +1459,28 @@ const yEditor = {
 
             resultsContainer.addEventListener('click', (e) => {
                 const itemElement = e.target.closest('[data-item]');
-                if (itemElement) {
-                    selectedData = JSON.parse(itemElement.dataset.item);
-                    searchInput.value = selectedData[promptConfig.displayField];
+                if (!itemElement) return;
+
+                const itemData = JSON.parse(itemElement.dataset.item);
+
+                if (isMultiple) {
+                    // Add item to the list if it's not already there
+                    if (!selectedItems.some(item => item.id === itemData.id)) { // Assuming items have a unique 'id'
+                        selectedItems.push(itemData);
+                        renderSelectedItems();
+                    }
+                    searchInput.value = ''; // Clear search for next item
+                    resultsContainer.innerHTML = ''; // Clear results
+                    searchInput.focus();
+                } else {
+                    // Single selection mode (original behavior)
+                    selectedItems = [itemData];
+                    searchInput.value = itemData[promptConfig.displayField];
                     resultsContainer.innerHTML = '';
                 }
             });
 
-            okButton.onclick = () => { modal.remove(); resolve(selectedData); };
+            okButton.onclick = () => { modal.remove(); resolve(isMultiple ? selectedItems : selectedItems[0] || null); };
             cancelButton.onclick = () => { modal.remove(); resolve(null); };
         });
     },

@@ -580,6 +580,38 @@
     font-size: 12px;
 }
 
+/* --- Custom Prompt: Selected Items --- */
+.yeditor-modal-body .selected-items-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    min-height: 38px;
+    background-color: #f9f9f9;
+}
+.yeditor-modal-body .selected-item {
+    display: flex;
+    align-items: center;
+    background-color: #e0e7ff;
+    color: #334d99;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+.yeditor-modal-body .selected-item-remove {
+    margin-inline-start: 6px;
+    border: none;
+    background: none;
+    color: #334d99;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+}
+
 /* --- Table Toolbar (Bubble Menu) --- */
 .table-toolbar {
     position: absolute;
