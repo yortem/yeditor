@@ -184,12 +184,10 @@ const yEditor = {
             }
 
             // If not, create a script tag to load it from the CDN.
-            console.log('yEditor: DOMPurify not found. Loading from CDN...');
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/dompurify@3.0.11/dist/purify.min.js';
             
             script.onload = () => {
-                console.log('yEditor: DOMPurify loaded successfully.');
                 resolve();
             };
             script.onerror = () => reject(new Error('yEditor: Failed to load DOMPurify from CDN.'));
