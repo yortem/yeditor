@@ -7,6 +7,8 @@ const yEditor = {
     _cssContent: null,
     // Path to the script directory, determined at runtime
     _scriptPath: null,
+    // Store instances of editors initialized on the page
+    _instances: {},
 
 
     _getToolbarButtons: function() {
@@ -39,7 +41,7 @@ const yEditor = {
             ...options
         };
         this.config = config;
-
+        
         // Ensure dependencies are loaded before proceeding
         await this._ensureDOMPurify();
 
@@ -79,6 +81,9 @@ const yEditor = {
         this._container = container; // Store container for event dispatching
         this._shadowRoot = shadowRoot; // Store shadowRoot for later access if needed
         this._textarea = textarea; // Store reference to original textarea
+
+        // Store instance details for external access
+        this._instances[selector] = { container, shadowRoot, textarea };
 
         // 3. הוסף את ה-CSS הפנימי
         const styleElement = document.createElement('style');
@@ -124,6 +129,29 @@ const yEditor = {
 
         // Dispatch init event
         this._dispatchEvent('yeditor-init', { editor: container });
+    },
+
+    /**
+     * Sets the content of an initialized editor instance.
+     * @param {string} selector The same selector used to initialize the editor (e.g., '.y-editor').
+     * @param {string} content The new HTML content to set.
+     */
+    setContent: function(selector, content) {
+        const instance = this._instances[selector];
+        if (!instance) {
+            console.error(`yEditor: No editor instance found for selector "${selector}". Was it initialized?`);
+            return;
+        }
+
+        const { shadowRoot, textarea } = instance;
+        const contentArea = shadowRoot.querySelector('.yeditor-content');
+        if (!contentArea) return;
+
+        const sanitizedContent = DOMPurify.sanitize(content);
+        contentArea.innerHTML = sanitizedContent;
+
+        // Manually trigger the update logic
+        contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
     },
 
     _loadCSS: async function() {
@@ -1493,6 +1521,7 @@ const yEditor = {
             detail: detail
         }));
     }
+
 };
 
 window.yEditor = yEditor;

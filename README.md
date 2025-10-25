@@ -173,6 +173,27 @@ console.log('Editor is focused.');
 
 ## Extensibility API
 
+## Methods API
+
+yEditor provides public methods to interact with an editor instance programmatically.
+
+#### `yEditor.setContent(selector, content)`
+
+Sets the HTML content of an initialized editor. This is the recommended way to update the editor's content from external scripts.
+
+*   `selector` (string): The same CSS selector used to initialize the editor (e.g., `'#my-editor'`).
+*   `content` (string): The new HTML content to set. The content will be sanitized automatically.
+
+**Example:**
+
+```javascript
+// Assuming the editor was initialized with yEditor.init('.my-editor');
+
+// Set new content after some action
+const newHtml = '<h2>New Title</h2><p>This is the new content.</p>';
+yEditor.setContent('.my-editor', newHtml);
+```
+
 You can add custom buttons to the toolbar using the `yEditor.registerButton(config)` function.
 
 ### Example: Adding an "Insert Product" Button
