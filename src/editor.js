@@ -132,6 +132,14 @@ const yEditor = {
     },
 
     /**
+     * Gets an initialized editor instance.
+     * @param {string} selector The same selector used to initialize the editor.
+     */
+    getInstance: function(selector) {
+        return this._instances[selector];
+    },
+
+    /**
      * Sets the content of an initialized editor instance.
      * @param {string} selector The same selector used to initialize the editor (e.g., '.y-editor').
      * @param {string} content The new HTML content to set.
@@ -152,6 +160,19 @@ const yEditor = {
 
         // Manually trigger the update logic
         contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    },
+
+    /**
+     * Listens for a global event to set content, allowing for decoupled updates.
+     */
+    _listenForExternalContent: function() {
+        // Ensure this listener is only added once
+        if (this._isListeningForExternalContent) return;
+        
+        document.addEventListener('yeditor-ai-content-generated', (e) => {
+            this.setContent(e.detail.selector, e.detail.content);
+        });
+        this._isListeningForExternalContent = true;
     },
 
     _loadCSS: async function() {
