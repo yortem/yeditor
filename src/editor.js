@@ -127,6 +127,9 @@ const yEditor = {
             }
         });
 
+        // Activate the listener for external content injection
+        this._listenForExternalContent();
+
         // Dispatch init event
         this._dispatchEvent('yeditor-init', { editor: container });
     },
@@ -169,7 +172,7 @@ const yEditor = {
         // Ensure this listener is only added once
         if (this._isListeningForExternalContent) return;
         
-        document.addEventListener('yeditor-ai-content-generated', (e) => {
+        document.addEventListener('yeditor-set-content', (e) => {
             this.setContent(e.detail.selector, e.detail.content);
         });
         this._isListeningForExternalContent = true;
