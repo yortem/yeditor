@@ -2,7 +2,7 @@
 
 yEditor is an open-source project for creating a JavaScript-based WYSIWYG content editor, designed for easy embedding on any website over a `<textarea>` element. The editor is fully encapsulated using Shadow DOM, supports directionality (RTL/LTR), and offers an API for extensibility.
 
-
+![The editor in action](example.webp)
 
 ## Key Features
 
