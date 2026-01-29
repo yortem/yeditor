@@ -25,6 +25,7 @@ const yEditor = {
             { command: 'insertImage', title: 'insertImage', icon: '<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"/></svg>' },
             { command: 'insertUnorderedList', title: 'unorderedList', icon: '<svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7zm0-6h14v-2H7zm0-8v2h14V5z"/></svg>' },
             { command: 'insertOrderedList', title: 'orderedList', icon: '<svg viewBox="0 0 24 24"><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2zm1-9h1V4H2v1h1zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2zm5-6v2h14V5zm0 14h14v-2H7zm0-6h14v-2H7z"/></svg>' },
+            { command: 'toggleSource', title: 'source', icon: '<svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>' },
         ];
     },
 
@@ -77,6 +78,7 @@ const yEditor = {
         const container = document.createElement('div');
         container.className = 'yeditor-container'; // Class for external reference if needed
         container.dataset.theme = config.theme; // Set theme attribute
+        container.dir = config.direction; // Set direction attribute
         const shadowRoot = container.attachShadow({ mode: 'open' });
         this._container = container; // Store container for event dispatching
         this._shadowRoot = shadowRoot; // Store shadowRoot for later access if needed
@@ -93,8 +95,14 @@ const yEditor = {
         // 4. צור את רכיבי העורך והוסף אותם
         const toolbar = this.createToolbar();
         const contentArea = this.createContentArea(textarea.value, config.direction);
+        const sourceArea = document.createElement('textarea');
+        sourceArea.className = 'yeditor-source';
+        sourceArea.style.display = 'none';
+        sourceArea.dir = 'ltr'; // HTML is always LTR
+
         shadowRoot.appendChild(toolbar);
         shadowRoot.appendChild(contentArea);
+        shadowRoot.appendChild(sourceArea);
 
         // 4.1 Create and append status bar
         const statusBarElement = document.createElement('div');
@@ -109,7 +117,7 @@ const yEditor = {
         textarea.parentNode.insertBefore(container, textarea);
 
         // 5. הגדר את האירועים
-        this.setupEventListeners(shadowRoot, toolbar, contentArea, textarea, container);
+        this.setupEventListeners(shadowRoot, toolbar, contentArea, sourceArea, textarea, container);
 
         // Hide link toolbar when clicking outside the editor
         document.addEventListener('click', (e) => {
@@ -369,7 +377,7 @@ const yEditor = {
         return contentArea;
     },
 
-    setupEventListeners: function(shadowRoot, toolbar, contentArea, textarea, container) {
+    setupEventListeners: function(shadowRoot, toolbar, contentArea, sourceArea, textarea, container) {
         // Close dropdowns when clicking anywhere in the editor, except on a dropdown button itself
         shadowRoot.addEventListener('click', (e) => {
             // Check if the click was on the dropdown button to let the other listener handle the toggle
@@ -480,6 +488,62 @@ const yEditor = {
                 }
             } else if (command === 'setDirection') {
                 this.setBlockDirection(shadowRoot, value);
+            } else if (command === 'toggleSource') {
+                const contentArea = shadowRoot.querySelector('.yeditor-content');
+                const sourceArea = shadowRoot.querySelector('.yeditor-source');
+                const isSource = sourceArea.style.display !== 'none';
+
+                if (isSource) {
+                    // Switch to WYSIWYG
+                    contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value);
+                    sourceArea.style.display = 'none';
+                    contentArea.style.display = 'block';
+                    button.classList.remove('active');
+                    
+                    // Sync and dispatch change
+                    textarea.value = DOMPurify.sanitize(contentArea.innerHTML);
+                    this._dispatchEvent('yeditor-change', { content: textarea.value });
+                    this.updateDomPath(shadowRoot, contentArea);
+                    this.updateWordCount(shadowRoot, contentArea);
+
+                    // Enable other buttons
+                    toolbar.querySelectorAll('button[data-command], .yeditor-dropdown').forEach(el => {
+                        if (el !== button && !el.closest('.yeditor-dropdown')) {
+                            el.classList.remove('disabled');
+                            el.style.pointerEvents = 'auto';
+                        }
+                        if (el.classList.contains('yeditor-dropdown')) {
+                             el.style.pointerEvents = 'auto';
+                             el.style.opacity = '1';
+                        }
+                    });
+                } else {
+                    // Switch to Source
+                    sourceArea.value = contentArea.innerHTML;
+                    contentArea.style.display = 'none';
+                    sourceArea.style.display = 'block';
+                    button.classList.add('active');
+                    // Sync original textarea
+                    textarea.value = sourceArea.value;
+
+                    // Clear DOM path
+                    const domPathEl = shadowRoot.querySelector('.yeditor-dom-path');
+                    if (domPathEl) domPathEl.innerHTML = '';
+                    this.updateWordCount(shadowRoot, sourceArea);
+
+                    // Disable other buttons
+                    toolbar.querySelectorAll('button[data-command], .yeditor-dropdown').forEach(el => {
+                        if (el !== button && !el.closest('.yeditor-dropdown')) {
+                            el.classList.add('disabled');
+                            el.style.pointerEvents = 'none';
+                        }
+                        if (el.classList.contains('yeditor-dropdown')) {
+                             el.style.pointerEvents = 'none';
+                             el.style.opacity = '0.4';
+                        }
+                    });
+                }
+                return;
             } else {
                 // השתמש ב-execCommand לפעולות עיצוב סטנדרטיות
                 document.execCommand(command, false, value || null);
@@ -495,6 +559,35 @@ const yEditor = {
             this._dispatchEvent('yeditor-change', { content: textarea.value });
             this.updateDomPath(shadowRoot, contentArea);
             this.updateWordCount(shadowRoot, contentArea);
+        });
+
+        sourceArea.addEventListener('input', () => {
+            textarea.value = sourceArea.value;
+            this._dispatchEvent('yeditor-change', { content: textarea.value });
+            this.updateWordCount(shadowRoot, sourceArea);
+        });
+
+        // 5. Paste handling (keep structure, strip styles)
+        contentArea.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const html = clipboardData.getData('text/html');
+            const text = clipboardData.getData('text/plain');
+
+            if (html) {
+                // Sanitize HTML to keep structure but strip styles and classes
+                const sanitizedHtml = DOMPurify.sanitize(html, {
+                    ALLOWED_TAGS: [
+                        'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                        'ul', 'ol', 'li', 'a', 'b', 'i', 'u', 'strong', 'em', 
+                        'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'hr'
+                    ],
+                    ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'dir']
+                });
+                document.execCommand('insertHTML', false, sanitizedHtml);
+            } else {
+                document.execCommand('insertText', false, text);
+            }
         });
 
         // Update status on selection change
@@ -1304,11 +1397,11 @@ const yEditor = {
 
     // --- Status Bar Functions ---
 
-    updateWordCount: function(shadowRoot, contentArea) {
+    updateWordCount: function(shadowRoot, element) {
         const wordCountEl = shadowRoot.querySelector('.yeditor-word-count');
         if (!wordCountEl) return;
 
-        const text = contentArea.innerText || '';
+        const text = (element.tagName === 'TEXTAREA' ? element.value : element.innerText) || '';
         const words = text.trim().split(/\s+/).filter(Boolean);
         const wordCount = words.length;
         wordCountEl.textContent = `${this.t('words') || 'Words'}: ${wordCount}`;
@@ -1323,13 +1416,34 @@ const yEditor = {
 
         let node = selection.anchorNode;
         const path = [];
+        const nodes = [];
+
         while (node && node !== contentArea) {
             if (node.nodeType === Node.ELEMENT_NODE) {
-                path.unshift(`<span>${node.tagName.toLowerCase()}</span>`);
+                nodes.unshift(node);
             }
             node = node.parentNode;
         }
-        domPathEl.innerHTML = path.join('');
+
+        domPathEl.innerHTML = '';
+        nodes.forEach((elNode, index) => {
+            const span = document.createElement('span');
+            span.textContent = elNode.tagName.toLowerCase();
+            span.style.cursor = 'pointer';
+            span.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const range = document.createRange();
+                const sel = shadowRoot.getSelection ? shadowRoot.getSelection() : window.getSelection();
+                range.selectNode(elNode);
+                sel.removeAllRanges();
+                sel.addRange(range);
+                
+                contentArea.focus();
+            });
+            domPathEl.appendChild(span);
+        });
     },
 
     // פונקציה מיוחדת לקביעת כיווניות של בלוק טקסט (פסקה)

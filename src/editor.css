@@ -57,6 +57,25 @@
     overflow-y: auto; /* מאפשר גלילה אם התוכן ארוך */
 }
 
+.yeditor-source {
+    width: 100%;
+    min-height: 200px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    color: #333;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+    resize: vertical;
+    display: block;
+}
+:host([data-theme="dark"]) .yeditor-source {
+    background-color: #1a202c;
+    color: #e2e8f0;
+}
+
 /* --- Blockquote Style --- */
 .yeditor-content blockquote {
     border: 1px solid #e9ecef;
@@ -148,13 +167,28 @@
     color: #6c757d;
     user-select: none;
 }
+.yeditor-dom-path {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
 .yeditor-dom-path span {
-    margin: 0 2px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.yeditor-dom-path span:hover {
+    color: #4c51bf; /* Indigo color on hover */
+    text-decoration: underline;
 }
 .yeditor-dom-path span:not(:last-child)::after {
     content: '>';
     margin-inline-start: 4px;
     color: #adb5bd;
+}
+:host([dir="rtl"]) .yeditor-dom-path span:not(:last-child)::after {
+    content: '<';
 }
 
 /* --- Dropdown for Headings --- */
