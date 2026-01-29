@@ -1088,9 +1088,17 @@ const yEditor = {
             const hostRect = shadowRoot.host.getBoundingClientRect(); // The editor container
 
             // Calculate toolbar position relative to the host element
-            // toolbar.offsetHeight will be correct here
-            const toolbarTop = linkRect.top - hostRect.top - toolbar.offsetHeight - 5;
-            const toolbarLeft = linkRect.left - hostRect.left + (linkRect.width / 2);
+            const toolbarHeight = toolbar.offsetHeight;
+            const toolbarWidth = toolbar.offsetWidth;
+            const toolbarTop = linkRect.top - hostRect.top - toolbarHeight - 5;
+            let toolbarLeft = linkRect.left - hostRect.left + (linkRect.width / 2);
+
+            // Boundary checking
+            if (toolbarLeft - (toolbarWidth / 2) < 0) {
+                toolbarLeft = toolbarWidth / 2 + 5;
+            } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
+                toolbarLeft = hostRect.width - (toolbarWidth / 2) - 5;
+            }
 
             toolbar.style.top = `${toolbarTop}px`;
             toolbar.style.left = `${toolbarLeft}px`;
@@ -1159,8 +1167,17 @@ const yEditor = {
             const tableRect = tableElement.getBoundingClientRect();
             const hostRect = shadowRoot.host.getBoundingClientRect();
 
-            const toolbarTop = tableRect.top - hostRect.top - toolbar.offsetHeight - 5;
-            const toolbarLeft = tableRect.left - hostRect.left + (tableRect.width / 2);
+            const toolbarHeight = toolbar.offsetHeight;
+            const toolbarWidth = toolbar.offsetWidth;
+            const toolbarTop = tableRect.top - hostRect.top - toolbarHeight - 5;
+            let toolbarLeft = tableRect.left - hostRect.left + (tableRect.width / 2);
+
+            // Boundary checking
+            if (toolbarLeft - (toolbarWidth / 2) < 0) {
+                toolbarLeft = toolbarWidth / 2 + 5;
+            } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
+                toolbarLeft = hostRect.width - (toolbarWidth / 2) - 5;
+            }
 
             toolbar.style.top = `${toolbarTop}px`;
             toolbar.style.left = `${toolbarLeft}px`;
@@ -1275,8 +1292,21 @@ const yEditor = {
         requestAnimationFrame(() => {
             const wrapperRect = wrapperElement.getBoundingClientRect();
             const hostRect = shadowRoot.host.getBoundingClientRect();
-            toolbar.style.top = `${wrapperRect.top - hostRect.top - toolbar.offsetHeight - 5}px`;
-            toolbar.style.left = `${wrapperRect.left - hostRect.left + (wrapperRect.width / 2)}px`;
+            
+            const toolbarHeight = toolbar.offsetHeight;
+            const toolbarWidth = toolbar.offsetWidth;
+            const toolbarTop = wrapperRect.top - hostRect.top - toolbarHeight - 5;
+            let toolbarLeft = wrapperRect.left - hostRect.left + (wrapperRect.width / 2);
+
+            // Boundary checking
+            if (toolbarLeft - (toolbarWidth / 2) < 0) {
+                toolbarLeft = toolbarWidth / 2 + 5;
+            } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
+                toolbarLeft = hostRect.width - (toolbarWidth / 2) - 5;
+            }
+
+            toolbar.style.top = `${toolbarTop}px`;
+            toolbar.style.left = `${toolbarLeft}px`;
             toolbar.classList.add('active');
         });
 
