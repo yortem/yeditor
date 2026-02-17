@@ -97,6 +97,7 @@ const yEditor = {
         // 4. צור את רכיבי העורך והוסף אותם
         const toolbar = this.createToolbar();
         const contentArea = this.createContentArea(textarea.value, config.direction);
+        this._protectBlocks(contentArea); // Protect any blocks in the initial content
         const sourceArea = document.createElement('textarea');
         sourceArea.className = 'yeditor-source';
         sourceArea.style.display = 'none';
@@ -175,6 +176,7 @@ const yEditor = {
             ADD_TAGS: ['div', 'span']
         });
         contentArea.innerHTML = sanitizedContent;
+        this._protectBlocks(contentArea); // Protect blocks in the newly set content
 
         // Manually trigger the update logic
         contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
@@ -510,15 +512,13 @@ const yEditor = {
                         ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
                         ADD_TAGS: ['div', 'span']
                     });
+                    this._protectBlocks(contentArea); // Re-protect blocks from raw HTML
                     sourceArea.style.display = 'none';
                     contentArea.style.display = 'block';
                     button.classList.remove('active');
                     
                     // Sync and dispatch change
-                    textarea.value = DOMPurify.sanitize(contentArea.innerHTML, { 
-                        ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                        ADD_TAGS: ['div', 'span']
-                    });
+                    textarea.value = this._cleanHTML(contentArea.innerHTML);
                     this._dispatchEvent('yeditor-change', { content: textarea.value });
                     this.updateDomPath(shadowRoot, contentArea);
                     this.updateWordCount(shadowRoot, contentArea);
@@ -536,7 +536,7 @@ const yEditor = {
                     });
                 } else {
                     // Switch to Source
-                    sourceArea.value = contentArea.innerHTML;
+                    sourceArea.value = this._cleanHTML(contentArea.innerHTML); // Show clean HTML in source view
                     contentArea.style.display = 'none';
                     sourceArea.style.display = 'block';
                     button.classList.add('active');
@@ -571,11 +571,8 @@ const yEditor = {
 
         // 4. סנכרן את התוכן בחזרה ל-textarea המקורי בכל שינוי
         contentArea.addEventListener('input', () => {
-            // Sanitize content before assigning it to the textarea for saving
-            textarea.value = DOMPurify.sanitize(contentArea.innerHTML, { 
-                ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                ADD_TAGS: ['div', 'span']
-            });
+            // Use _cleanHTML to strip internal attributes before saving to textarea
+            textarea.value = this._cleanHTML(contentArea.innerHTML);
             this._dispatchEvent('yeditor-change', { content: textarea.value });
             this.updateDomPath(shadowRoot, contentArea);
             this.updateWordCount(shadowRoot, contentArea);
@@ -1562,11 +1559,8 @@ const yEditor = {
                     // Since it's an edit, we replace the existing element
                     element.parentNode.replaceChild(protectedElement, element);
                     
-                    // Manually trigger change event
-                    this._textarea.value = DOMPurify.sanitize(shadowRoot.querySelector('.yeditor-content').innerHTML, { 
-                        ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                        ADD_TAGS: ['div', 'span']
-                    });
+                    // Manually trigger change event with clean HTML
+                    this._textarea.value = this._cleanHTML(shadowRoot.querySelector('.yeditor-content').innerHTML);
                     this._dispatchEvent('yeditor-change', { content: this._textarea.value });
                 }
             });
@@ -1716,8 +1710,9 @@ const yEditor = {
 
             if (selectedItemsContainer) {
                 selectedItemsContainer.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('selected-item-remove')) {
-                        const itemSpan = e.target.closest('.selected-item');
+                    const removeBtn = e.target.closest('.selected-item-remove');
+                    if (removeBtn) {
+                        const itemSpan = removeBtn.closest('.selected-item');
                         const indexToRemove = parseInt(itemSpan.dataset.index, 10);
                         selectedItems.splice(indexToRemove, 1);
                         renderSelectedItems();
@@ -1768,6 +1763,69 @@ const yEditor = {
             composed: true, // Important for events to cross Shadow DOM boundaries
             detail: detail
         }));
+    },
+
+    /**
+     * Finds elements matching registered custom buttons and applies protection.
+     * @param {HTMLElement} container The container to search in (contentArea).
+     */
+    _protectBlocks: function(container) {
+        this._customButtons.forEach(config => {
+            if (!config.edit) return;
+            const elements = container.querySelectorAll(config.edit.selector);
+            elements.forEach(el => {
+                el.dataset.yeditorBlock = "true";
+                el.dataset.yeditorType = config.title || "Block";
+                el.contentEditable = "false";
+                el.style.userSelect = "all";
+                if (config.inline) {
+                    el.style.display = "inline-block";
+                } else {
+                    el.style.display = "block";
+                }
+            });
+        });
+    },
+
+    /**
+     * Cleans HTML content for saving by removing internal editor attributes.
+     * @param {string} html The raw HTML from contentArea.
+     * @returns {string} Cleaned HTML.
+     */
+    _cleanHTML: function(html) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // Remove all internal editor attributes and behaviors
+        const selectors = [
+            '[data-yeditor-block]',
+            '[contenteditable="false"]',
+            '.yeditor-image-wrapper'
+        ];
+        
+        tempDiv.querySelectorAll(selectors.join(',')).forEach(el => {
+            el.removeAttribute('data-yeditor-block');
+            el.removeAttribute('data-yeditor-type');
+            el.removeAttribute('contenteditable');
+            
+            // Clean specific styles we added
+            if (el.style.userSelect === 'all') el.style.userSelect = '';
+            if (el.style.display === 'inline-block' || el.style.display === 'block') {
+                // Only remove display if it was likely added by us for block protection
+                const config = this._customButtons.find(c => c.edit && el.matches(c.edit.selector));
+                if (config) el.style.display = '';
+            }
+        });
+
+        // Handle image wrappers specifically to return clean <img> tags
+        tempDiv.querySelectorAll('.yeditor-image-wrapper').forEach(wrapper => {
+            const img = wrapper.querySelector('img');
+            if (img) {
+                wrapper.parentNode.replaceChild(img, wrapper);
+            }
+        });
+
+        return tempDiv.innerHTML;
     }
 
 };
