@@ -44,5 +44,6 @@
     "editImage": "Edit Image",
     "deleteImage": "Delete Image",
     "linkPlaceholderSimple": "https://...",
-    "browseServer": "Browse Server"
+    "browseServer": "Browse Server",
+    "source": "Source Code"
 }
