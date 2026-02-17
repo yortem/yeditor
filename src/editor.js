@@ -42,10 +42,16 @@ const yEditor = {
             ...options
         };
         this.config = config;
-        
-        // Ensure dependencies are loaded before proceeding
-        await this._ensureDOMPurify();
 
+        const textarea = document.querySelector(selector);
+        if (!textarea) {
+            console.error("yEditor: Element not found for selector:", selector);
+            return;
+        }
+
+        // 1. Hide the original textarea immediately to avoid flickering
+        textarea.style.visibility = 'hidden';
+        
         // Determine script path once, relative to which other assets are loaded.
         if (!this._scriptPath) {
             // Find the script tag that loaded this script.
@@ -60,21 +66,17 @@ const yEditor = {
             }
         }
 
-        // Load the language file before proceeding
-        await this._loadCSS();
-        await this._loadLanguage(config.lang);
+        // Load dependencies and assets in parallel
+        await Promise.all([
+            this._ensureDOMPurify(),
+            this._loadCSS(),
+            this._loadLanguage(config.lang)
+        ]);
+
         this.t = (key) => this._loadedTranslations[this.config.lang]?.[key] || this._loadedTranslations[this._defaultLang]?.[key] || key;
 
-        const textarea = document.querySelector(selector);
-        if (!textarea) {
-            console.error("yEditor: Element not found for selector:", selector);
-            return;
-        }
-
-        // 1. הסתר את ה-textarea המקורי
-        textarea.style.display = 'none';
-
         // 2. צור את הקונטיינר הראשי ואת ה-Shadow DOM
+        textarea.style.display = 'none';
         const container = document.createElement('div');
         container.className = 'yeditor-container'; // Class for external reference if needed
         container.dataset.theme = config.theme; // Set theme attribute
@@ -139,6 +141,7 @@ const yEditor = {
         this._listenForExternalContent();
 
         // Dispatch init event
+        textarea.classList.add('yeditor-initialized');
         this._dispatchEvent('yeditor-init', { editor: container });
     },
 
@@ -166,7 +169,11 @@ const yEditor = {
         const contentArea = shadowRoot.querySelector('.yeditor-content');
         if (!contentArea) return;
 
-        const sanitizedContent = DOMPurify.sanitize(content);
+        // Consistent sanitization with custom block support
+        const sanitizedContent = DOMPurify.sanitize(content, { 
+            ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+            ADD_TAGS: ['div', 'span']
+        });
         contentArea.innerHTML = sanitizedContent;
 
         // Manually trigger the update logic
@@ -373,7 +380,11 @@ const yEditor = {
         contentArea.className = 'yeditor-content';
         contentArea.contentEditable = true;
         contentArea.dir = direction;
-        contentArea.innerHTML = DOMPurify.sanitize(initialValue); // Sanitize initial content
+        // Ensure custom block attributes are preserved during initial load
+        contentArea.innerHTML = DOMPurify.sanitize(initialValue, { 
+            ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+            ADD_TAGS: ['div', 'span']
+        });
         return contentArea;
     },
 
@@ -495,13 +506,19 @@ const yEditor = {
 
                 if (isSource) {
                     // Switch to WYSIWYG
-                    contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value);
+                    contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value, { 
+                        ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                        ADD_TAGS: ['div', 'span']
+                    });
                     sourceArea.style.display = 'none';
                     contentArea.style.display = 'block';
                     button.classList.remove('active');
                     
                     // Sync and dispatch change
-                    textarea.value = DOMPurify.sanitize(contentArea.innerHTML);
+                    textarea.value = DOMPurify.sanitize(contentArea.innerHTML, { 
+                        ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                        ADD_TAGS: ['div', 'span']
+                    });
                     this._dispatchEvent('yeditor-change', { content: textarea.value });
                     this.updateDomPath(shadowRoot, contentArea);
                     this.updateWordCount(shadowRoot, contentArea);
@@ -555,7 +572,10 @@ const yEditor = {
         // 4. סנכרן את התוכן בחזרה ל-textarea המקורי בכל שינוי
         contentArea.addEventListener('input', () => {
             // Sanitize content before assigning it to the textarea for saving
-            textarea.value = DOMPurify.sanitize(contentArea.innerHTML);
+            textarea.value = DOMPurify.sanitize(contentArea.innerHTML, { 
+                ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                ADD_TAGS: ['div', 'span']
+            });
             this._dispatchEvent('yeditor-change', { content: textarea.value });
             this.updateDomPath(shadowRoot, contentArea);
             this.updateWordCount(shadowRoot, contentArea);
@@ -620,6 +640,16 @@ const yEditor = {
             } else {
                 this._clearImageSelection(shadowRoot);
             }
+
+            // --- Custom Buttons Bubbles ---
+            this._customButtons.forEach(config => {
+                if (config.edit) {
+                    const el = e.target.closest(config.edit.selector);
+                    if (el) {
+                        this._showCustomBubble(shadowRoot, el, config);
+                    }
+                }
+            });
         });
 
         // Initial status update
@@ -1525,16 +1555,56 @@ const yEditor = {
             const initialData = config.edit.onOpen(element);
             this._showCustomPrompt(config.prompt, initialData).then(newData => {
                 if (newData) {
-                    const newHtml = config.onInsert(newData);
-                    const newElWrapper = document.createElement('div');
-                    newElWrapper.innerHTML = newHtml;
-                    const newElement = newElWrapper.firstElementChild;
-
-                    element.parentNode.replaceChild(newElement, element);
+                    const itemsToInsert = Array.isArray(newData) ? newData : [newData];
+                    const rawHtml = config.onInsert(itemsToInsert);
+                    const protectedElement = this._createProtectedBlock(rawHtml, config);
+                    
+                    // Since it's an edit, we replace the existing element
+                    element.parentNode.replaceChild(protectedElement, element);
+                    
+                    // Manually trigger change event
+                    this._textarea.value = DOMPurify.sanitize(shadowRoot.querySelector('.yeditor-content').innerHTML, { 
+                        ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                        ADD_TAGS: ['div', 'span']
+                    });
+                    this._dispatchEvent('yeditor-change', { content: this._textarea.value });
                 }
             });
             toolbar.remove();
         };
+    },
+
+    _createProtectedBlock: function(rawHtml, config) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(rawHtml, 'text/html');
+        const firstChild = doc.body.firstElementChild;
+        const isSingleElement = firstChild && doc.body.children.length === 1 && doc.body.textContent.trim() === firstChild.textContent.trim();
+
+        let blockElement;
+        if (isSingleElement) {
+            blockElement = firstChild;
+        } else {
+            blockElement = document.createElement(config.inline ? 'span' : 'div');
+            blockElement.innerHTML = rawHtml;
+        }
+
+        // Apply protection and identification attributes
+        blockElement.dataset.yeditorBlock = "true";
+        blockElement.dataset.yeditorType = config.title || "Block";
+        blockElement.contentEditable = "false";
+        blockElement.style.userSelect = "all";
+        if (!config.inline) {
+            blockElement.style.display = "block";
+        } else {
+            blockElement.style.display = "inline-block";
+        }
+        
+        // If there's an edit selector, ensure it's on this element
+        if (config.edit && config.edit.selector.startsWith('.')) {
+            blockElement.classList.add(config.edit.selector.substring(1));
+        }
+
+        return blockElement;
     },
 
     // --- Custom Buttons API ---
@@ -1565,12 +1635,16 @@ const yEditor = {
                         selection.addRange(savedRange);
 
                         // The onInsert function now needs to handle both a single object and an array of objects.
-                        // We can create a unified input for it.
                         const itemsToInsert = Array.isArray(result) ? result : [result];
                         const rawHtml = config.onInsert(itemsToInsert);
+                        const protectedElement = this._createProtectedBlock(rawHtml, config);
 
-                        const sanitizedHtml = DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['style'] }); // Allow style attribute for custom embeds
-                        document.execCommand('insertHTML', false, sanitizedHtml);
+                        const sanitizedHtml = DOMPurify.sanitize(protectedElement.outerHTML, { 
+                            ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                            ADD_TAGS: ['div', 'span']
+                        });
+                        
+                        document.execCommand('insertHTML', false, sanitizedHtml + (config.inline ? '' : '<p><br></p>'));
                     }
                 });
             });
@@ -1584,15 +1658,11 @@ const yEditor = {
             const body = document.createElement('div');
             const isMultiple = promptConfig.multiple === true;
 
-            // Add a container for selected items if in multiple mode
-            if (isMultiple) {
-                body.innerHTML += `<div class="selected-items-container"></div>`;
-            }
-
             body.innerHTML = `
                 <label for="custom-search">${promptConfig.label}</label>
                 <input type="text" id="custom-search" placeholder="${promptConfig.placeholder}" autocomplete="off">
                 <div class="search-results"></div>
+                ${isMultiple ? '<div class="selected-items-container"></div>' : ''}
             `;
 
             const footer = document.createElement('div');
@@ -1609,28 +1679,40 @@ const yEditor = {
 
             const resultsContainer = body.querySelector('.search-results');
             const selectedItemsContainer = body.querySelector('.selected-items-container');
-            let selectedItems = []; // Use an array to store multiple items
+            let selectedItems = []; 
 
-            searchInput.value = initialData[promptConfig.displayField] || '';
+            // Initialize selectedItems from initialData if provided (for editing)
+            if (isMultiple && Array.isArray(initialData)) {
+                selectedItems = [...initialData];
+            } else if (!isMultiple && initialData && typeof initialData === 'object') {
+                searchInput.value = initialData[promptConfig.displayField] || '';
+            }
+
+            const renderSelectedItems = () => {
+                if (!selectedItemsContainer) return;
+                selectedItemsContainer.innerHTML = selectedItems.map((item, index) => {
+                    const idDisplay = item.id ? `<small style="opacity: 0.7; margin-inline-start: 4px; font-size: 0.8em;">(#${item.id})</small>` : '';
+                    return `
+                        <span class="selected-item" data-index="${index}">
+                            ${item[promptConfig.displayField]}
+                            ${idDisplay}
+                            <button type="button" class="selected-item-remove" title="${this.t('remove') || 'Remove'}">
+                                <svg viewBox="0 0 24 24" width="14" height="14" style="display: block;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
+                            </button>
+                        </span>
+                    `;
+                }).join('');
+            };
+
+            if (isMultiple) renderSelectedItems();
 
             // Submit on Enter
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
-                    // In the future, this could also select a highlighted item
                     e.preventDefault();
                     okButton.click();
                 }
             });
-
-            const renderSelectedItems = () => {
-                if (!selectedItemsContainer) return;
-                selectedItemsContainer.innerHTML = selectedItems.map((item, index) => `
-                    <span class="selected-item" data-index="${index}">
-                        ${item[promptConfig.displayField]}
-                        <button type="button" class="selected-item-remove" title="Remove">&times;</button>
-                    </span>
-                `).join('');
-            };
 
             if (selectedItemsContainer) {
                 selectedItemsContainer.addEventListener('click', (e) => {
