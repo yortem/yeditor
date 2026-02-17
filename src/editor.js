@@ -1548,8 +1548,8 @@ const yEditor = {
             toolbar.classList.add('active');
         });
 
-        editButton.onclick = () => {
-            const initialData = config.edit.onOpen(element);
+        editButton.onclick = async () => {
+            const initialData = await config.edit.onOpen(element);
             this._showCustomPrompt(config.prompt, initialData).then(newData => {
                 if (newData) {
                     const itemsToInsert = Array.isArray(newData) ? newData : [newData];
@@ -1685,7 +1685,7 @@ const yEditor = {
             const renderSelectedItems = () => {
                 if (!selectedItemsContainer) return;
                 selectedItemsContainer.innerHTML = selectedItems.map((item, index) => {
-                    const idDisplay = item.id ? `<small style="opacity: 0.7; margin-inline-start: 4px; font-size: 0.8em;">(#${item.id})</small>` : '';
+                    const idDisplay = item.id ? `<small style="opacity: 0.7; margin-inline-start: 4px; font-size: 0.8em;">(${item.id}#)</small>` : '';
                     return `
                         <span class="selected-item" data-index="${index}">
                             ${item[promptConfig.displayField]}

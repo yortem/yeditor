@@ -108,13 +108,26 @@ yEditor.registerButton({
     // Configuration for the "Edit" bubble menu
     edit: {
         selector: '.y-products-shortcode',
-        onOpen: (element) => {
-            // Parse the existing IDs from the block text to pre-fill the prompt
+        // onOpen can be async to fetch real data from your database
+        onOpen: async (element) => {
+            // 1. Extract IDs from the shortcode text
             const match = element.textContent.match(/{products: (.*)}/);
-            if (match) {
-                return match[1].split(',').map(id => ({ id: id.trim(), title: `Product ${id}` }));
+            if (!match) return [];
+            
+            const ids = match[1].split(',').map(id => id.trim());
+
+            try {
+                // 2. Fetch actual product names from your API
+                const response = await fetch(`/api/products/batch?ids=${ids.join(',')}`);
+                if (response.ok) {
+                    return await response.json(); // Array of {id, title}
+                }
+            } catch (e) {
+                console.error("Fetch error:", e);
             }
-            return [];
+
+            // Fallback: show placeholders if API fails
+            return ids.map(id => ({ id: id, title: `Product ${id}` }));
         }
     }
 });

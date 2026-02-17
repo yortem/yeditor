@@ -54,13 +54,25 @@
                 },
                 edit: {
                     selector: '.y-products-block',
-                    onOpen: (element) => {
+                    onOpen: async (element) => {
                         const match = element.textContent.match(/{מוצרים: (.*)}/);
                         if (match) {
                             const ids = match[1].split(',');
-                            // In a real app, you might fetch full data for these IDs
-                            // For this demo, we'll map them back to mock objects
-                            return ids.map(id => ({ id: id.trim(), title: `Product ${id.trim()}` }));
+                            // Simulating an async fetch for full product data
+                            return await new Promise(resolve => {
+                                setTimeout(() => {
+                                    const mockData = {
+                                        '101': 'iPhone 15 Pro',
+                                        '102': 'Samsung Galaxy S24',
+                                        '103': 'MacBook Air M3',
+                                        '104': 'iPad Pro'
+                                    };
+                                    resolve(ids.map(id => ({ 
+                                        id: id.trim(), 
+                                        title: mockData[id.trim()] || `Product ${id.trim()}` 
+                                    })));
+                                }, 300);
+                            });
                         }
                         return [];
                     }
