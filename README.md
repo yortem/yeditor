@@ -4,6 +4,28 @@ yEditor is an open-source project for creating a JavaScript-based WYSIWYG conten
 
 ![The editor in action](example.webp)
 
+## Version & CDN Usage
+
+### Using via CDN (Recommended)
+```html
+<!-- Latest version -->
+<script src="https://unpkg.com/yeditor/dist/editor.min.js"></script>
+
+<!-- Specific version -->
+<script src="https://unpkg.com/yeditor@v1.0.0/dist/editor.min.js"></script>
+
+<!-- Auto-update: gets latest v1.x.x (patch updates) -->
+<script src="https://unpkg.com/yeditor@^1.0.0/dist/editor.min.js"></script>
+```
+
+### Using via GitHub Releases
+Download specific releases from the [Releases page](https://github.com/yourusername/yeditor/releases).
+
+### Programmatic Version Check
+```javascript
+console.log(yEditor.version); // e.g., "1.0.0"
+```
+
 ## Performance & Visual Stability
 
 ### Avoiding Flickering (Flash of Un-styled Textarea)

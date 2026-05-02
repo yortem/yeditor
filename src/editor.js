@@ -1,4 +1,6 @@
 const yEditor = {
+    // Library version (replaced at build time)
+    version: 'VERSION',
     // Cache for loaded language files
     _loadedTranslations: {},
     // Default fallback translations

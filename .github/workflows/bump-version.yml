@@ -1,0 +1,83 @@
+name: Bump Version and Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install bc
+        run: sudo apt-get update && sudo apt-get install -y bc
+
+      - name: Read current version
+        id: current_version
+        run: |
+          VERSION=$(cat VERSION)
+          echo "CURRENT=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: new_version
+        run: |
+          CURRENT="${{ steps.current_version.outputs.CURRENT }}"
+          
+          # Split version into parts
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          
+          # Auto-bump: every commit adds 0.1 to minor
+          # If triggered manually, use the selected bump type
+          if [ "${{ github.event.inputs.bump_type }}" != "" ]; then
+            BUMP="${{ github.event.inputs.bump_type }}"
+            case "$BUMP" in
+              major)
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              minor)
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              patch)
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+          else
+            # Auto mode: bump minor by 0.1
+            MINOR=$(echo "$MINOR + 0.1" | bc)
+          fi
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "NEW=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "$NEW_VERSION" > VERSION
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version bump
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: bump version to ${{ steps.new_version.outputs.NEW }}"
+          file_pattern: VERSION
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "actions@github.com"
+
+      - name: Create Git Tag
+        run: |
+          git tag v${{ steps.new_version.outputs.NEW }}
+          git push origin v${{ steps.new_version.outputs.NEW }}
