@@ -75,11 +75,13 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: bump version to ${{ steps.new_version.outputs.NEW }}"
-          file_pattern: VERSION
+          file_pattern: VERSION CHANGELOG.md
           commit_user_name: "GitHub Actions"
           commit_user_email: "actions@github.com"
+          push: true
 
       - name: Create Git Tag
         run: |
+          git fetch --tags
           git tag v${{ steps.new_version.outputs.NEW }}
           git push origin v${{ steps.new_version.outputs.NEW }}
