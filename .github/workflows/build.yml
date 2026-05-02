@@ -15,6 +15,9 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       # Step 1: Check out your repository code
       - name: Checkout repository
