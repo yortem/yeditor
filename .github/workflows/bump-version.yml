@@ -26,9 +26,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install bc
-        run: sudo apt-get update && sudo apt-get install -y bc
-
       - name: Read current version
         id: current_version
         run: |
@@ -39,11 +36,14 @@ jobs:
         id: new_version
         run: |
           CURRENT="${{ steps.current_version.outputs.CURRENT }}"
+          CURRENT=$(echo "$CURRENT" | tr -d '[:space:]')
           
-          # Split version into parts
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          # Extract parts
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
           
-          # Auto-bump: every commit adds 0.1 to minor
+          # Auto-bump: every commit bumps minor
           # If triggered manually, use the selected bump type
           if [ "${{ github.event.inputs.bump_type }}" != "" ]; then
             BUMP="${{ github.event.inputs.bump_type }}"
@@ -62,8 +62,9 @@ jobs:
                 ;;
             esac
           else
-            # Auto mode: bump minor by 0.1
-            MINOR=$(echo "$MINOR + 0.1" | bc)
+            # Auto mode: bump minor by 1
+            MINOR=$((MINOR + 1))
+            PATCH=0
           fi
           
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
