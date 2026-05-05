@@ -140,6 +140,14 @@ const yEditor = {
             }
         });
 
+        // Clean up empty image wrappers (left behind by backspace/delete)
+        this._imageWrapperObserver = new MutationObserver(() => {
+            contentArea.querySelectorAll('.yeditor-image-wrapper:not(.resizable)').forEach(w => {
+                if (!w.querySelector('img')) w.remove();
+            });
+        });
+        this._imageWrapperObserver.observe(contentArea, { childList: true, subtree: true });
+
         // Activate the listener for external content injection
         this._listenForExternalContent();
 
@@ -309,7 +317,8 @@ const yEditor = {
         // --- Color Picker Dropdown ---
         const colors = [
             '#000000', '#6c757d', '#dc3545', '#fd7e14', '#ffc107', '#28a745',
-            '#17a2b8', '#007bff', '#6f42c1', '#e83e8c', '#adb5bd', '#ffffff'
+            '#17a2b8', '#007bff', '#6f42c1', '#e83e8c', '#adb5bd', '#795548',
+            '#607d8b', '#ffffff'
         ];
         const colorDropdown = document.createElement('div');
         colorDropdown.className = 'yeditor-dropdown';
@@ -488,7 +497,19 @@ const yEditor = {
                         selection.removeAllRanges();
                         selection.addRange(savedRange);
                         const sanitizedAlt = DOMPurify.sanitize(result.alt, { USE_PROFILES: { html: false } });
-                        document.execCommand('insertHTML', false, `<img src="${result.url}" alt="${sanitizedAlt}">`);
+                        let styleAttr = '';
+                        if (result.width) styleAttr += ` width="${result.width}"`;
+                        if (result.height) styleAttr += ` height="${result.height}"`;
+                        document.execCommand('insertHTML', false, `<img src="${result.url}" alt="${sanitizedAlt}"${styleAttr}>`);
+                        if (result.alignment) {
+                            const img = contentArea.querySelector(`img[src="${result.url}"]:last-child`);
+                            if (img) {
+                                const wrapper = document.createElement('span');
+                                wrapper.className = `yeditor-image-wrapper align-${result.alignment}`;
+                                img.parentNode.insertBefore(wrapper, img);
+                                wrapper.appendChild(img);
+                            }
+                        }
                     }
                 });
                 return; // Prevent focus shift until modal is closed
@@ -622,7 +643,12 @@ const yEditor = {
 
             const link = e.target.closest('a');
             const table = e.target.closest('table');
-            const img = e.target.closest('img');
+            let img = e.target.closest('img');
+            // If the image has pointer-events:none (during resize), the click lands on the wrapper
+            const wrapper = e.target.closest('.yeditor-image-wrapper');
+            if (!img && wrapper) {
+                img = wrapper.querySelector('img');
+            }
 
             if (link) {
                 this.showLinkToolbar(shadowRoot, link);
@@ -772,6 +798,37 @@ const yEditor = {
                     <label for="image-alt">${this.t('altText')}</label>
                     <input type="text" id="image-alt" value="${initialData.alt || ''}">
                 </div>
+                <div class="input-group" style="margin-top: 15px;">
+                    <div>
+                        <label for="image-width">${this.t('width')}</label>
+                        <input type="text" id="image-width" placeholder="${this.t('auto')}" value="${initialData.width || ''}">
+                    </div>
+                    <div>
+                        <label for="image-height">${this.t('height')}</label>
+                        <input type="text" id="image-height" placeholder="${this.t('auto')}" value="${initialData.height || ''}">
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <label>${this.t('alignment')}</label>
+                    <div class="image-alignment-options">
+                        <label class="alignment-option">
+                            <input type="radio" name="image-align" value="" checked>
+                            <span>${this.t('none')}</span>
+                        </label>
+                        <label class="alignment-option">
+                            <input type="radio" name="image-align" value="left">
+                            <span>${this.t('alignLeft')}</span>
+                        </label>
+                        <label class="alignment-option">
+                            <input type="radio" name="image-align" value="center">
+                            <span>${this.t('alignCenter')}</span>
+                        </label>
+                        <label class="alignment-option">
+                            <input type="radio" name="image-align" value="right">
+                            <span>${this.t('alignRight')}</span>
+                        </label>
+                    </div>
+                </div>
             `;
 
             const footer = document.createElement('div');
@@ -788,28 +845,31 @@ const yEditor = {
 
             const urlInput = body.querySelector('#image-url');
             const altInput = body.querySelector('#image-alt');
+            const widthInput = body.querySelector('#image-width');
+            const heightInput = body.querySelector('#image-height');
+
+            if (initialData.alignment) {
+                const radio = body.querySelector(`input[name="image-align"][value="${initialData.alignment}"]`);
+                if (radio) radio.checked = true;
+            }
 
             // --- File Browser Logic ---
             const browseButton = body.querySelector('#yeditor-browse-server');
             if (this.config.fileBrowserUrl) {
                 browseButton.addEventListener('click', () => {
-                    // Define a global callback function that the popup can call
                     window.yEditorFileBrowserCallback = (fileUrl) => {
                         if (fileUrl) {
                             urlInput.value = fileUrl;
                         }
-                        // Clean up the global function
                         delete window.yEditorFileBrowserCallback;
                     };
 
-                    // --- Popup window options with defaults ---
                     const browserOptions = this.config.fileBrowserOptions || {};
                     const popupWidth = browserOptions.width || 900;
                     const popupHeight = browserOptions.height || 600;
                     const left = browserOptions.left !== undefined ? browserOptions.left : (window.screen.width - popupWidth) / 2;
                     const top = browserOptions.top !== undefined ? browserOptions.top : (window.screen.height - popupHeight) / 2;
 
-                    // Open the file browser popup
                     window.open(
                         this.config.fileBrowserUrl, 
                         'yEditorFileBrowser', 
@@ -820,7 +880,7 @@ const yEditor = {
                 browseButton.style.display = 'none';
             }
 
-            [urlInput, altInput].forEach(input => {
+            [urlInput, altInput, widthInput, heightInput].forEach(input => {
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -855,7 +915,6 @@ const yEditor = {
                         `).join('');
                     });
             } else {
-                // If no API URL is provided, hide the gallery tab
                 galleryTabButton.style.display = 'none';
             }
 
@@ -874,8 +933,11 @@ const yEditor = {
                 const activeTab = body.querySelector('.yeditor-modal-tabs button.active').dataset.tab;
                 const url = (activeTab === 'gallery') ? selectedImageUrl : body.querySelector('#image-url').value;
                 const alt = body.querySelector('#image-alt').value;
+                const width = body.querySelector('#image-width').value;
+                const height = body.querySelector('#image-height').value;
+                const alignment = body.querySelector('input[name="image-align"]:checked').value;
                 modal.remove();
-                resolve({ url, alt });
+                resolve({ url, alt, width: width ? parseInt(width, 10) : null, height: height ? parseInt(height, 10) : null, alignment });
             };
 
             cancelButton.onclick = () => { modal.remove(); resolve(null); };
@@ -1251,10 +1313,8 @@ const yEditor = {
     // --- Image Functions ---
 
     _handleImageSelection: function(shadowRoot, imgElement) {
-        // Clear any other selections first
         this._clearImageSelection(shadowRoot);
 
-        // Wrap the image if it's not already wrapped
         let wrapper = imgElement.parentElement;
         if (!wrapper.classList.contains('yeditor-image-wrapper')) {
             wrapper = document.createElement('span');
@@ -1263,39 +1323,99 @@ const yEditor = {
             wrapper.appendChild(imgElement);
         }
 
-        // Make the wrapper resizable
         wrapper.classList.add('resizable');
-        // Set the initial size of the wrapper to the image's current size
         wrapper.style.width = `${imgElement.offsetWidth}px`;
         wrapper.style.height = `${imgElement.offsetHeight}px`;
 
-        // Show the image toolbar
+        // Restore alignment from inline styles (set during _cleanHTML)
+        if (imgElement.style.cssFloat === 'left') this._setImageAlignment(wrapper, 'left');
+        else if (imgElement.style.cssFloat === 'right') this._setImageAlignment(wrapper, 'right');
+        else if (imgElement.style.display === 'block' && imgElement.style.marginLeft === 'auto' && imgElement.style.marginRight === 'auto') {
+            this._setImageAlignment(wrapper, 'center');
+        }
+
+        this._addResizeHandles(shadowRoot, wrapper);
         this.showImageToolbar(shadowRoot, wrapper, imgElement);
 
-         // Add a one-time event listener for when resizing stops
         const onMouseUp = () => {
-            // Apply the wrapper's size to the image's style
             imgElement.style.width = wrapper.style.width;
             imgElement.style.height = wrapper.style.height;
 
-            // Temporarily remove the 'resizable' class to get clean HTML for saving
             wrapper.classList.remove('resizable');
+            wrapper.querySelectorAll('.yeditor-resize-handle').forEach(h => h.remove());
 
-            // Manually trigger an update to the underlying textarea
             this._textarea.value = DOMPurify.sanitize(wrapper.closest('.yeditor-content').innerHTML);
-            
-            // Add the class back so the user still sees the selection
-            wrapper.classList.add('resizable');
 
-            // Clean up the listener
+            wrapper.classList.add('resizable');
+            this._addResizeHandles(shadowRoot, wrapper);
+
             document.removeEventListener('mouseup', onMouseUp);
         };
         document.addEventListener('mouseup', onMouseUp);
     },
 
+    _addResizeHandles: function(shadowRoot, wrapper) {
+        wrapper.querySelectorAll('.yeditor-resize-handle').forEach(h => h.remove());
+
+        const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+        handles.forEach(dir => {
+            const handle = document.createElement('div');
+            handle.className = `yeditor-resize-handle yeditor-resize-handle-${dir}`;
+            wrapper.appendChild(handle);
+
+            const startDrag = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startW = wrapper.offsetWidth;
+                const startH = wrapper.offsetHeight;
+                const aspect = startW / startH;
+
+                const doDrag = (ev) => {
+                    const dx = ev.clientX - startX;
+                    const dy = ev.clientY - startY;
+                    let newW = startW, newH = startH;
+
+                    if (dir.includes('e')) { newW = Math.max(50, startW + dx); }
+                    if (dir.includes('w')) { newW = Math.max(50, startW - dx); }
+                    if (dir.includes('s')) { newH = Math.max(50, startH + dy); }
+                    if (dir.includes('n')) { newH = Math.max(50, startH - dy); }
+
+                    if (ev.shiftKey) {
+                        const ratio = newW / newH;
+                        if (ratio > aspect) { newH = newW / aspect; } else { newW = newH * aspect; }
+                    }
+
+                    wrapper.style.width = `${newW}px`;
+                    wrapper.style.height = `${newH}px`;
+                };
+
+                const stopDrag = () => {
+                    document.removeEventListener('mousemove', doDrag);
+                    document.removeEventListener('mouseup', stopDrag);
+                };
+
+                document.addEventListener('mousemove', doDrag);
+                document.addEventListener('mouseup', stopDrag);
+            };
+
+            handle.addEventListener('mousedown', startDrag);
+        });
+    },
+
+    _setImageAlignment: function(wrapper, alignment) {
+        wrapper.classList.remove('align-left', 'align-center', 'align-right');
+        if (alignment) {
+            wrapper.classList.add(`align-${alignment}`);
+        }
+    },
+
     _clearImageSelection: function(shadowRoot) {
         shadowRoot.querySelectorAll('.yeditor-image-wrapper.resizable').forEach(wrapper => {
             wrapper.classList.remove('resizable');
+            wrapper.querySelectorAll('.yeditor-resize-handle').forEach(h => h.remove());
         });
         this.hideImageToolbar(shadowRoot);
     },
@@ -1310,24 +1430,63 @@ const yEditor = {
         editButton.innerHTML = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
         editButton.title = this.t('editImage');
 
+        // Alignment buttons
+        const alignLeftBtn = document.createElement('button');
+        alignLeftBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M21 15H3v2h18zm0-8H3v2h18zM3 13h18v-2H3zm0 8h18v-2H3zM3 3v2h18V3z"/></svg>`;
+        alignLeftBtn.title = this.t('alignLeftImage');
+        alignLeftBtn.dataset.align = 'left';
+
+        const alignCenterBtn = document.createElement('button');
+        alignCenterBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7 15v2h10v-2zm-4 6h18v-2H3zm0-8h18v-2H3zm4-6v2h10V7zM3 3v2h18V3z"/></svg>`;
+        alignCenterBtn.title = this.t('alignCenterImage');
+        alignCenterBtn.dataset.align = 'center';
+
+        const alignRightBtn = document.createElement('button');
+        alignRightBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M3 21h18v-2H3zm6-4h12v-2H9zM3 13h18v-2H3zm6-4h12V7H9zM3 3v2h18V3z"/></svg>`;
+        alignRightBtn.title = this.t('alignRightImage');
+        alignRightBtn.dataset.align = 'right';
+
+        // Separator
+        const sep1 = document.createElement('span');
+        sep1.className = 'image-toolbar-separator';
+
+        // Size presets
+        const sizeSmallBtn = document.createElement('button');
+        sizeSmallBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20 5H4v4h16V5z"/></svg>`;
+        sizeSmallBtn.title = 'Small';
+        sizeSmallBtn.dataset.size = 'small';
+
+        const sizeMediumBtn = document.createElement('button');
+        sizeMediumBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20 5H4v7h16V5z"/></svg>`;
+        sizeMediumBtn.title = 'Medium';
+        sizeMediumBtn.dataset.size = 'medium';
+
+        const sizeLargeBtn = document.createElement('button');
+        sizeLargeBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20 5H4v11h16V5z"/></svg>`;
+        sizeLargeBtn.title = 'Large';
+        sizeLargeBtn.dataset.size = 'large';
+
+        // Separator
+        const sep2 = document.createElement('span');
+        sep2.className = 'image-toolbar-separator';
+
         const deleteButton = document.createElement('button');
         deleteButton.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg>`;
         deleteButton.title = this.t('deleteImage');
 
-        toolbar.append(editButton, deleteButton);
+        toolbar.append(editButton, sep1, alignLeftBtn, alignCenterBtn, alignRightBtn, sep2, sizeSmallBtn, sizeMediumBtn, sizeLargeBtn, deleteButton);
 
         shadowRoot.appendChild(toolbar);
 
         requestAnimationFrame(() => {
             const wrapperRect = wrapperElement.getBoundingClientRect();
             const hostRect = shadowRoot.host.getBoundingClientRect();
-            
+
             const toolbarHeight = toolbar.offsetHeight;
             const toolbarWidth = toolbar.offsetWidth;
             const toolbarTop = wrapperRect.top - hostRect.top - toolbarHeight - 5;
             let toolbarLeft = wrapperRect.left - hostRect.left + (wrapperRect.width / 2);
 
-            // Boundary checking
             if (toolbarLeft - (toolbarWidth / 2) < 0) {
                 toolbarLeft = toolbarWidth / 2 + 5;
             } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
@@ -1340,19 +1499,51 @@ const yEditor = {
         });
 
         editButton.onclick = () => {
-            this.showImagePrompt(shadowRoot, { url: imgElement.src, alt: imgElement.alt }).then(result => {
+            this.showImagePrompt(shadowRoot, {
+                url: imgElement.src,
+                alt: imgElement.alt,
+                width: imgElement.width,
+                height: imgElement.height
+            }).then(result => {
                 if (result) {
                     imgElement.src = result.url;
                     imgElement.alt = result.alt;
+                    if (result.width) {
+                        imgElement.style.width = result.width + 'px';
+                        wrapperElement.style.width = result.width + 'px';
+                    }
+                    if (result.height) {
+                        imgElement.style.height = result.height + 'px';
+                        wrapperElement.style.height = result.height + 'px';
+                    }
+                    this._setImageAlignment(wrapperElement, result.alignment);
                 }
             });
         };
 
+        [alignLeftBtn, alignCenterBtn, alignRightBtn].forEach(btn => {
+            btn.onclick = () => {
+                this._setImageAlignment(wrapperElement, btn.dataset.align);
+            };
+        });
+
+        const sizePresets = { small: 150, medium: 300, large: 500 };
+        [sizeSmallBtn, sizeMediumBtn, sizeLargeBtn].forEach(btn => {
+            btn.onclick = () => {
+                const newW = sizePresets[btn.dataset.size];
+                const imgW = imgElement.naturalWidth || newW;
+                const imgH = imgElement.naturalHeight || newW;
+                const ratio = imgH / imgW;
+                wrapperElement.style.width = `${newW}px`;
+                wrapperElement.style.height = `${newW * ratio}px`;
+                imgElement.style.width = `${newW}px`;
+                imgElement.style.height = `${newW * ratio}px`;
+            };
+        });
+
         deleteButton.onclick = () => {
             wrapperElement.remove();
             this.hideImageToolbar(shadowRoot);
-            // Dispatch an 'input' event on the content area to trigger
-            // the existing update logic, including sanitization.
             shadowRoot.querySelector('.yeditor-content').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         };
     },
@@ -1823,6 +2014,14 @@ const yEditor = {
         tempDiv.querySelectorAll('.yeditor-image-wrapper').forEach(wrapper => {
             const img = wrapper.querySelector('img');
             if (img) {
+                // Preserve alignment classes from wrapper onto the image
+                if (wrapper.classList.contains('align-left')) img.style.cssFloat = 'left';
+                if (wrapper.classList.contains('align-right')) img.style.cssFloat = 'right';
+                if (wrapper.classList.contains('align-center')) {
+                    img.style.display = 'block';
+                    img.style.marginLeft = 'auto';
+                    img.style.marginRight = 'auto';
+                }
                 wrapper.parentNode.replaceChild(img, wrapper);
             }
         });
