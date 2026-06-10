@@ -41,6 +41,7 @@ const yEditor = {
             imageGalleryApiUrl: null,
             fileBrowserOptions: {},
             fileBrowserUrl: null,
+            height: null,
             ...options
         };
         this.config = config;
@@ -83,6 +84,10 @@ const yEditor = {
         container.className = 'yeditor-container'; // Class for external reference if needed
         container.dataset.theme = config.theme; // Set theme attribute
         container.dir = config.direction; // Set direction attribute
+        if (config.height) {
+            container.style.height = config.height;
+            container.dataset.yeditorFixedHeight = '';
+        }
         const shadowRoot = container.attachShadow({ mode: 'open' });
         this._container = container; // Store container for event dispatching
         this._shadowRoot = shadowRoot; // Store shadowRoot for later access if needed
