@@ -77,11 +77,14 @@ The editor will automatically replace the textarea once initialization is comple
         lang: 'en',       // e.g., 'en', 'he'
         direction: 'ltr', // 'ltr' or 'rtl'
         theme: 'light',   // 'light' or 'dark'
+        height: '400px',  // optional: fixed editor height (e.g., '400px', '50vh')
         quickLinksApiUrl: '/path/to/links-api.json',
         imageGalleryApiUrl: '/path/to/images-api.json',
         fileBrowserUrl: '/path/to/your/file-browser.html'
     });
     ```
+
+    **`height`**: By default, the editor grows with its content. Set this option to a CSS height value (e.g., `'400px'`, `'50vh'`) to give the editor a fixed height — the toolbar stays visible at the top and the content area scrolls internally.
 
 ## Extensibility API (Custom Buttons)
 
