@@ -78,13 +78,75 @@ The editor will automatically replace the textarea once initialization is comple
         direction: 'ltr', // 'ltr' or 'rtl'
         theme: 'light',   // 'light' or 'dark'
         height: '400px',  // optional: fixed editor height (e.g., '400px', '50vh')
-        quickLinksApiUrl: '/path/to/links-api.json',
-        imageGalleryApiUrl: '/path/to/images-api.json',
+        quickLinksApiUrl: '/api/links',  // see Quick Links section below
+        imageGalleryApiUrl: '/api/images',
         fileBrowserUrl: '/path/to/your/file-browser.html'
     });
     ```
 
     **`height`**: By default, the editor grows with its content. Set this option to a CSS height value (e.g., `'400px'`, `'50vh'`) to give the editor a fixed height — the toolbar stays visible at the top and the content area scrolls internally.
+
+### Quick Links (`quickLinksApiUrl`)
+
+When a user types in the link prompt, yEditor sends the search query to your server by appending `?q=<query>` (or `&q=<query>` if your URL already has a `?`).
+
+**Expected API response**: A JSON array of objects with `title` and `url` keys:
+
+```json
+[
+    { "title": "About Us", "url": "/about" },
+    { "title": "Contact",  "url": "/contact" }
+]
+```
+
+The results are additionally filtered client-side against both `title` and `url`.
+
+### Customizing search results (`renderLinkItem`)
+
+By default each result renders as a clickable row with the title and URL:
+
+```html
+<a class="search-result-item" data-url="/about">
+    About Us
+    <small>/about</small>
+</a>
+```
+
+Pass a `renderLinkItem(link, query)` function to customize the output. For example, to bold the matching portion of the title and hide the URL:
+
+```javascript
+yEditor.init('#my-editor', {
+    quickLinksApiUrl: '/api/links',
+    renderLinkItem: (link, query) => {
+        const q = query.toLowerCase();
+        const idx = link.title.toLowerCase().indexOf(q);
+        let title = link.title;
+        if (idx !== -1) {
+            title = title.substring(0, idx) + '<strong>' + title.substring(idx, idx + q.length) + '</strong>' + title.substring(idx + q.length);
+        }
+        return `<a class="search-result-item" data-url="${link.url}">${title}</a>`;
+    }
+});
+```
+
+### Transforming results (`transformLinkResults`)
+
+Pass a `transformLinkResults(results, query)` function to add, remove, or modify results before they are rendered. Must return an array of `{title, url}` objects.
+
+```javascript
+yEditor.init('#my-editor', {
+    quickLinksApiUrl: '/api/links',
+    transformLinkResults: (links, query) => {
+        // Add a "Create new page" entry at the top
+        return [
+            { title: `+ Create new "${query}" page`, url: `/admin/pages/new?title=${encodeURIComponent(query)}` },
+            ...links
+        ];
+    }
+});
+```
+
+> Note: `transformLinkResults` runs **before** the client-side filter, so entries you add will also be filtered by the query.
 
 ## Extensibility API (Custom Buttons)
 

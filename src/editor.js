@@ -42,6 +42,8 @@ const yEditor = {
             fileBrowserOptions: {},
             fileBrowserUrl: null,
             height: null,
+            renderLinkItem: null,
+            transformLinkResults: null,
             ...options
         };
         this.config = config;
@@ -1040,27 +1042,37 @@ const yEditor = {
                 urlInput.addEventListener('input', () => {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(async () => {
-                        const query = urlInput.value.trim().toLowerCase();
+                        const query = urlInput.value.trim();
                         if (query.length < 2) {
                             resultsContainer.innerHTML = '';
                             return;
                         }
 
                         try {
-                            // In a real app, this would be fetch(`${this.config.quickLinksApiUrl}?search=${query}`)
-                            const response = await fetch(this.config.quickLinksApiUrl);
+                            const queryLower = query.toLowerCase();
+                            const separator = this.config.quickLinksApiUrl.includes('?') ? '&' : '?';
+                            const response = await fetch(`${this.config.quickLinksApiUrl}${separator}q=${encodeURIComponent(query)}`);
                             const links = await response.json();
-                            
-                            const filteredLinks = links.filter(link => 
-                                link.title.toLowerCase().includes(query) || link.url.toLowerCase().includes(query)
+
+                            // Allow user to transform/manipulate results before filtering
+                            let processedLinks = links;
+                            if (typeof this.config.transformLinkResults === 'function') {
+                                const transformed = this.config.transformLinkResults(links, query);
+                                if (Array.isArray(transformed)) processedLinks = transformed;
+                            }
+
+                            const filteredLinks = processedLinks.filter(link =>
+                                link.title.toLowerCase().includes(queryLower) || link.url.toLowerCase().includes(queryLower)
                             );
 
-                            resultsContainer.innerHTML = filteredLinks.map(link => 
-                                `<a class="search-result-item" data-url="${link.url}">
+                            const renderFn = typeof this.config.renderLinkItem === 'function'
+                                ? this.config.renderLinkItem
+                                : (link) => `<a class="search-result-item" data-url="${link.url}">
                                     ${link.title}
                                     <small>${link.url}</small>
-                                </a>`
-                            ).join('');
+                                </a>`;
+
+                            resultsContainer.innerHTML = filteredLinks.map(link => renderFn(link, query)).join('');
 
                         } catch (error) {
                             console.error('Quick links API error:', error);
