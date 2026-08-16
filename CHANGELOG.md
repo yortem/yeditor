@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-08-16
+### Fixed
+- Stripped unwanted `data-*` attributes (e.g. `data-index-in-node`, `data-path-to-node`) from pasted AI chat HTML
+- Added `DATA_ATTR: false` to all DOMPurify sanitize calls to prevent non-editor `data-*` attributes from surviving
+- `_cleanHTML` now strips all non-editor `data-*` attributes from every element on each save cycle
+
 ## [1.1.0] - 2026-05-05
 ### Added
 - Custom resize handles (8 draggable corners/edges) replacing native CSS resize

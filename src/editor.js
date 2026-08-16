@@ -189,6 +189,7 @@ const yEditor = {
 
         // Consistent sanitization with custom block support
         const sanitizedContent = DOMPurify.sanitize(content, { 
+            DATA_ATTR: false,
             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
             ADD_TAGS: ['div', 'span']
         });
@@ -402,6 +403,7 @@ const yEditor = {
         contentArea.dir = direction;
         // Ensure custom block attributes are preserved during initial load
         contentArea.innerHTML = DOMPurify.sanitize(initialValue, { 
+            DATA_ATTR: false,
             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
             ADD_TAGS: ['div', 'span']
         });
@@ -539,6 +541,7 @@ const yEditor = {
                 if (isSource) {
                     // Switch to WYSIWYG
                     contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value, { 
+                        DATA_ATTR: false,
                         ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
                         ADD_TAGS: ['div', 'span']
                     });
@@ -624,6 +627,7 @@ const yEditor = {
             if (html) {
                 // Sanitize HTML to keep structure but strip styles and classes
                 const sanitizedHtml = DOMPurify.sanitize(html, {
+                    DATA_ATTR: false,
                     ALLOWED_TAGS: [
                         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
                         'ul', 'ol', 'li', 'a', 'b', 'i', 'u', 'strong', 'em', 
@@ -1844,6 +1848,7 @@ const yEditor = {
                         const protectedElement = this._createProtectedBlock(rawHtml, config);
 
                         const sanitizedHtml = DOMPurify.sanitize(protectedElement.outerHTML, { 
+                            DATA_ATTR: false,
                             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
                             ADD_TAGS: ['div', 'span']
                         });
@@ -2005,6 +2010,17 @@ const yEditor = {
     _cleanHTML: function(html) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
+        
+        const editorDataAttrs = ['data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'];
+
+        // Strip all data-* attributes except editor's own from every element
+        tempDiv.querySelectorAll('*').forEach(el => {
+            [...el.attributes].forEach(attr => {
+                if (attr.name.startsWith('data-') && !editorDataAttrs.includes(attr.name)) {
+                    el.removeAttribute(attr.name);
+                }
+            });
+        });
         
         // Remove all internal editor attributes and behaviors
         const selectors = [
