@@ -110,6 +110,43 @@
     background-color: #2d3748; /* gray-800 */
 }
 
+/* --- Code / Pre Styles --- */
+.yeditor-content code {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f1f3f5;
+    color: #c92a2a;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+.yeditor-content pre {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 12px 15px;
+    margin-block: 1em;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.yeditor-content pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+}
+:host([data-theme="dark"]) .yeditor-content code {
+    background-color: #2d3748;
+    color: #feb2b2;
+}
+:host([data-theme="dark"]) .yeditor-content pre {
+    background-color: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
 /* --- Table Styles --- */
 .yeditor-content table {
     width: 100%;

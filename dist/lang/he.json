@@ -45,5 +45,6 @@
     "deleteImage": "מחק תמונה",
     "linkPlaceholderSimple": "https://...",
     "browseServer": "בחירת תמונה",
-    "source": "קוד מקור"
+    "source": "קוד מקור",
+    "code": "קוד"
 }

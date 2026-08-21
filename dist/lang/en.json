@@ -53,5 +53,6 @@
     "height": "Height",
     "alignment": "Alignment",
     "auto": "Auto",
-    "none": "None"
+    "none": "None",
+    "code": "Code"
 }

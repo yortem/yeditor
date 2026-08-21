@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-08-21
+### Added
+- Inline `<code>` toolbar button with toggle (wrap/unwrap selection), styled `code`/`pre` blocks for light/dark themes (`src/editor.js`, `src/editor.css`, `src/lang`)
+- Paste and DOMPurify sanitization now preserves `code` and `pre` tags
+### Fixed
+- Table edit toolbar now correctly updates rows/columns/headers — fixed `replaceChild` TypeError where `DOMPurify.sanitize` string was passed as Node (`src/editor.js:1324`), now uses sanitized DocumentFragment and syncs content
+
 ## [1.5.1] - 2026-08-16
 ### Fixed
 - Stripped unwanted `data-*` attributes (e.g. `data-index-in-node`, `data-path-to-node`) from pasted AI chat HTML

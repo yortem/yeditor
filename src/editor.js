@@ -22,6 +22,7 @@ const yEditor = {
             { command: 'createLink', title: 'link', icon: '<svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>' },
             { command: 'unlink', title: 'unlink', icon: '<svg viewBox="0 0 24 24"><path d="M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.96l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5zM7 9h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1S5.29 9 7 9zm-1 4h10v-2H6zm-3.24-8.76L2 6.24l19.76 19.76 1.41-1.41z"/></svg>' },
             { command: 'formatBlock', value: 'blockquote', title: 'quote', icon: '<svg viewBox="0 0 24 24"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>' },
+            { command: 'code', title: 'code', icon: '<svg viewBox="0 0 24 24"><path d="M8.17 14.5L6 12l2.17-2.5.7.7L7.34 12l1.53 1.8-.7.7zm7.66 0l-.7-.7L16.66 12l-1.53-1.8.7-.7L18 12l-2.17 2.5zM11 17h2l2-10h-2z"/></svg>' },
             { command: 'insertTable', title: 'table', icon: '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4zm0-6H4v-4h4zm0-6H4V4h4zm6 12h-4v-4h4zm0-6h-4v-4h4zm0-6h-4V4h4zm6 12h-4v-4h4zm0-6h-4v-4h4zm0-6h-4V4h4z"/></svg>' },
             { command: 'insertHorizontalRule', title: 'horizontalRule', icon: '<svg viewBox="0 0 24 24"><path d="M4 11h16v2H4z"/></svg>' },
             { command: 'insertImage', title: 'insertImage', icon: '<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"/></svg>' },
@@ -191,7 +192,7 @@ const yEditor = {
         const sanitizedContent = DOMPurify.sanitize(content, { 
             DATA_ATTR: false,
             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-            ADD_TAGS: ['div', 'span']
+            ADD_TAGS: ['div', 'span', 'code', 'pre']
         });
         contentArea.innerHTML = sanitizedContent;
         this._protectBlocks(contentArea); // Protect blocks in the newly set content
@@ -405,7 +406,7 @@ const yEditor = {
         contentArea.innerHTML = DOMPurify.sanitize(initialValue, { 
             DATA_ATTR: false,
             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-            ADD_TAGS: ['div', 'span']
+            ADD_TAGS: ['div', 'span', 'code', 'pre']
         });
         return contentArea;
     },
@@ -531,6 +532,8 @@ const yEditor = {
                     // Otherwise, apply blockquote
                     document.execCommand('formatBlock', false, 'blockquote');
                 }
+            } else if (command === 'code') {
+                this._toggleCode(shadowRoot);
             } else if (command === 'setDirection') {
                 this.setBlockDirection(shadowRoot, value);
             } else if (command === 'toggleSource') {
@@ -543,7 +546,7 @@ const yEditor = {
                     contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value, { 
                         DATA_ATTR: false,
                         ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                        ADD_TAGS: ['div', 'span']
+                        ADD_TAGS: ['div', 'span', 'code', 'pre']
                     });
                     this._protectBlocks(contentArea); // Re-protect blocks from raw HTML
                     sourceArea.style.display = 'none';
@@ -631,7 +634,8 @@ const yEditor = {
                     ALLOWED_TAGS: [
                         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
                         'ul', 'ol', 'li', 'a', 'b', 'i', 'u', 'strong', 'em', 
-                        'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'hr'
+                        'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'hr',
+                        'code', 'pre', 'span', 'div'
                     ],
                     ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'dir']
                 });
@@ -1317,9 +1321,19 @@ const yEditor = {
                     const newTableHTML = this._createTableHTML(newData.rows, newData.cols, newData.header);
                     const newTableWrapper = document.createElement('div');
                     newTableWrapper.innerHTML = newTableHTML;
-            // Sanitize the newly created table before replacing
-            const newTable = DOMPurify.sanitize(newTableWrapper.innerHTML, { ADD_TAGS: ['table', 'thead', 'tbody', 'tr', 'th', 'td'], ADD_ATTR: ['style', 'border'] });
-                    tableElement.parentNode.replaceChild(newTable, tableElement);
+                    // Sanitize the newly created table before replacing
+                    const sanitizedHTML = DOMPurify.sanitize(newTableWrapper.innerHTML, { ADD_TAGS: ['table', 'thead', 'tbody', 'tr', 'th', 'td'], ADD_ATTR: ['style', 'border'] });
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = sanitizedHTML;
+                    // Replace table with sanitized fragment (table + trailing <p><br></p>)
+                    const fragment = document.createDocumentFragment();
+                    while (tempDiv.firstChild) fragment.appendChild(tempDiv.firstChild);
+                    tableElement.parentNode.replaceChild(fragment, tableElement);
+                    // Sync to textarea and dispatch change
+                    const contentArea = shadowRoot.querySelector('.yeditor-content');
+                    if (contentArea) {
+                        contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    }
                 }
             });
             this.hideTableToolbar(shadowRoot);
@@ -1739,6 +1753,82 @@ const yEditor = {
         }
     },
 
+    _toggleCode: function(shadowRoot) {
+        const selection = shadowRoot.getSelection ? shadowRoot.getSelection() : window.getSelection();
+        if (!selection || !selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        const contentArea = shadowRoot.querySelector('.yeditor-content');
+        if (!contentArea) return;
+
+        const findCodeAncestor = (node) => {
+            let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+            return el ? el.closest('code') : null;
+        };
+
+        // If collapsed - unwrap if inside code
+        if (range.collapsed) {
+            const codeEl = findCodeAncestor(range.startContainer);
+            if (codeEl) {
+                const parent = codeEl.parentNode;
+                while (codeEl.firstChild) parent.insertBefore(codeEl.firstChild, codeEl);
+                parent.removeChild(codeEl);
+                parent.normalize();
+                contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                contentArea.focus();
+                this.updateDomPath(shadowRoot, contentArea);
+            }
+            return;
+        }
+
+        // Check if selection is inside the same <code>
+        let ancestorCode = null;
+        const startCode = findCodeAncestor(range.startContainer);
+        const endCode = findCodeAncestor(range.endContainer);
+        if (startCode && startCode === endCode) {
+            ancestorCode = startCode;
+        } else if (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE && range.commonAncestorContainer.closest) {
+            const ca = range.commonAncestorContainer.closest('code');
+            if (ca) ancestorCode = ca;
+        }
+
+        if (ancestorCode) {
+            // Unwrap
+            const parent = ancestorCode.parentNode;
+            const children = Array.from(ancestorCode.childNodes);
+            children.forEach(child => parent.insertBefore(child, ancestorCode));
+            parent.removeChild(ancestorCode);
+            parent.normalize();
+            try {
+                if (children.length) {
+                    const newRange = document.createRange();
+                    newRange.setStartBefore(children[0]);
+                    newRange.setEndAfter(children[children.length - 1]);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                }
+            } catch (e) {}
+        } else {
+            // Wrap in <code>
+            try {
+                const codeEl = document.createElement('code');
+                codeEl.appendChild(range.extractContents());
+                range.insertNode(codeEl);
+                const newRange = document.createRange();
+                newRange.selectNodeContents(codeEl);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            } catch (e) {
+                const text = range.toString();
+                const div = document.createElement('div');
+                div.textContent = text;
+                document.execCommand('insertHTML', false, `<code>${div.innerHTML}</code>`);
+            }
+        }
+        contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        contentArea.focus();
+        this.updateDomPath(shadowRoot, contentArea);
+    },
+
     _showCustomBubble: function(shadowRoot, element, config) {
         // Hide other custom bubbles
         shadowRoot.querySelectorAll('[data-bubble-for]').forEach(b => b.remove());
@@ -1850,7 +1940,7 @@ const yEditor = {
                         const sanitizedHtml = DOMPurify.sanitize(protectedElement.outerHTML, { 
                             DATA_ATTR: false,
                             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                            ADD_TAGS: ['div', 'span']
+                            ADD_TAGS: ['div', 'span', 'code', 'pre']
                         });
                         
                         document.execCommand('insertHTML', false, sanitizedHtml + (config.inline ? '' : '<p><br></p>'));
