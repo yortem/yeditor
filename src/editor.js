@@ -192,7 +192,7 @@ const yEditor = {
         const sanitizedContent = DOMPurify.sanitize(content, { 
             DATA_ATTR: false,
             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-            ADD_TAGS: ['div', 'span', 'code', 'pre']
+            ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
         });
         contentArea.innerHTML = sanitizedContent;
         this._protectBlocks(contentArea); // Protect blocks in the newly set content
@@ -406,7 +406,7 @@ const yEditor = {
         contentArea.innerHTML = DOMPurify.sanitize(initialValue, { 
             DATA_ATTR: false,
             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-            ADD_TAGS: ['div', 'span', 'code', 'pre']
+            ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
         });
         return contentArea;
     },
@@ -507,17 +507,27 @@ const yEditor = {
                         selection.removeAllRanges();
                         selection.addRange(savedRange);
                         const sanitizedAlt = DOMPurify.sanitize(result.alt, { USE_PROFILES: { html: false } });
+                        const sanitizedCaption = DOMPurify.sanitize(result.caption || '', { USE_PROFILES: { html: false } });
                         let styleAttr = '';
                         if (result.width) styleAttr += ` width="${result.width}"`;
                         if (result.height) styleAttr += ` height="${result.height}"`;
                         document.execCommand('insertHTML', false, `<img src="${result.url}" alt="${sanitizedAlt}"${styleAttr}>`);
-                        if (result.alignment) {
-                            const img = contentArea.querySelector(`img[src="${result.url}"]:last-child`);
-                            if (img) {
-                                const wrapper = document.createElement('span');
-                                wrapper.className = `yeditor-image-wrapper align-${result.alignment}`;
+                        const img = contentArea.querySelector(`img[src="${result.url}"]:last-child`);
+                        if (img) {
+                            const needWrapper = result.alignment || sanitizedCaption;
+                            if (needWrapper) {
+                                const wrapperTag = sanitizedCaption ? 'figure' : 'span';
+                                const wrapper = document.createElement(wrapperTag);
+                                wrapper.className = 'yeditor-image-wrapper';
+                                if (result.alignment) wrapper.classList.add(`align-${result.alignment}`);
                                 img.parentNode.insertBefore(wrapper, img);
                                 wrapper.appendChild(img);
+                                if (sanitizedCaption) {
+                                    const captionEl = document.createElement('figcaption');
+                                    captionEl.className = 'yeditor-image-caption';
+                                    captionEl.textContent = sanitizedCaption;
+                                    wrapper.appendChild(captionEl);
+                                }
                             }
                         }
                     }
@@ -546,7 +556,7 @@ const yEditor = {
                     contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value, { 
                         DATA_ATTR: false,
                         ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                        ADD_TAGS: ['div', 'span', 'code', 'pre']
+                        ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
                     });
                     this._protectBlocks(contentArea); // Re-protect blocks from raw HTML
                     sourceArea.style.display = 'none';
@@ -635,7 +645,7 @@ const yEditor = {
                         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
                         'ul', 'ol', 'li', 'a', 'b', 'i', 'u', 'strong', 'em', 
                         'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'hr',
-                        'code', 'pre', 'span', 'div'
+                        'code', 'pre', 'span', 'div', 'figure', 'figcaption'
                     ],
                     ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'dir']
                 });
@@ -813,6 +823,10 @@ const yEditor = {
                     <label for="image-alt">${this.t('altText')}</label>
                     <input type="text" id="image-alt" value="${initialData.alt || ''}">
                 </div>
+                <div style="margin-top: 15px;">
+                    <label for="image-caption">${this.t('caption')}</label>
+                    <input type="text" id="image-caption" placeholder="${this.t('captionPlaceholder')}" value="${initialData.caption || ''}">
+                </div>
                 <div class="input-group" style="margin-top: 15px;">
                     <div>
                         <label for="image-width">${this.t('width')}</label>
@@ -828,19 +842,19 @@ const yEditor = {
                     <div class="image-alignment-options">
                         <label class="alignment-option">
                             <input type="radio" name="image-align" value="" checked>
-                            <span>${this.t('none')}</span>
+                            <span>${this.t('imageAlignNone')}</span>
                         </label>
                         <label class="alignment-option">
                             <input type="radio" name="image-align" value="left">
-                            <span>${this.t('alignLeft')}</span>
+                            <span>${this.t('imageAlignLeft')}</span>
                         </label>
                         <label class="alignment-option">
                             <input type="radio" name="image-align" value="center">
-                            <span>${this.t('alignCenter')}</span>
+                            <span>${this.t('imageAlignCenter')}</span>
                         </label>
                         <label class="alignment-option">
                             <input type="radio" name="image-align" value="right">
-                            <span>${this.t('alignRight')}</span>
+                            <span>${this.t('imageAlignRight')}</span>
                         </label>
                     </div>
                 </div>
@@ -860,6 +874,7 @@ const yEditor = {
 
             const urlInput = body.querySelector('#image-url');
             const altInput = body.querySelector('#image-alt');
+            const captionInput = body.querySelector('#image-caption');
             const widthInput = body.querySelector('#image-width');
             const heightInput = body.querySelector('#image-height');
 
@@ -895,7 +910,7 @@ const yEditor = {
                 browseButton.style.display = 'none';
             }
 
-            [urlInput, altInput, widthInput, heightInput].forEach(input => {
+            [urlInput, altInput, captionInput, widthInput, heightInput].forEach(input => {
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -948,11 +963,12 @@ const yEditor = {
                 const activeTab = body.querySelector('.yeditor-modal-tabs button.active').dataset.tab;
                 const url = (activeTab === 'gallery') ? selectedImageUrl : body.querySelector('#image-url').value;
                 const alt = body.querySelector('#image-alt').value;
+                const caption = body.querySelector('#image-caption').value;
                 const width = body.querySelector('#image-width').value;
                 const height = body.querySelector('#image-height').value;
                 const alignment = body.querySelector('input[name="image-align"]:checked').value;
                 modal.remove();
-                resolve({ url, alt, width: width ? parseInt(width, 10) : null, height: height ? parseInt(height, 10) : null, alignment });
+                resolve({ url, alt, caption, width: width ? parseInt(width, 10) : null, height: height ? parseInt(height, 10) : null, alignment });
             };
 
             cancelButton.onclick = () => { modal.remove(); resolve(null); };
@@ -1534,11 +1550,16 @@ const yEditor = {
         });
 
         editButton.onclick = () => {
+            const currentAlignment = wrapperElement.classList.contains('align-left') ? 'left' : wrapperElement.classList.contains('align-right') ? 'right' : wrapperElement.classList.contains('align-center') ? 'center' : '';
+            const currentCaptionEl = wrapperElement.querySelector('.yeditor-image-caption');
+            const currentCaption = currentCaptionEl ? currentCaptionEl.textContent : '';
             this.showImagePrompt(shadowRoot, {
                 url: imgElement.src,
                 alt: imgElement.alt,
+                caption: currentCaption,
                 width: imgElement.width,
-                height: imgElement.height
+                height: imgElement.height,
+                alignment: currentAlignment
             }).then(result => {
                 if (result) {
                     imgElement.src = result.url;
@@ -1546,12 +1567,34 @@ const yEditor = {
                     if (result.width) {
                         imgElement.style.width = result.width + 'px';
                         wrapperElement.style.width = result.width + 'px';
+                    } else {
+                        imgElement.style.width = '';
+                        wrapperElement.style.width = '';
                     }
                     if (result.height) {
                         imgElement.style.height = result.height + 'px';
                         wrapperElement.style.height = result.height + 'px';
+                    } else {
+                        imgElement.style.height = '';
+                        wrapperElement.style.height = '';
                     }
                     this._setImageAlignment(wrapperElement, result.alignment);
+                    // Handle caption
+                    const sanitizedCaption = DOMPurify.sanitize(result.caption || '', { USE_PROFILES: { html: false } });
+                    let captionEl = wrapperElement.querySelector('.yeditor-image-caption');
+                    if (sanitizedCaption) {
+                        if (!captionEl) {
+                            captionEl = document.createElement('figcaption');
+                            captionEl.className = 'yeditor-image-caption';
+                            wrapperElement.appendChild(captionEl);
+                        }
+                        captionEl.textContent = sanitizedCaption;
+                    } else if (captionEl) {
+                        captionEl.remove();
+                    }
+                    // Trigger change
+                    const contentArea = shadowRoot.querySelector('.yeditor-content');
+                    if (contentArea) contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
                 }
             });
         };
@@ -1940,7 +1983,7 @@ const yEditor = {
                         const sanitizedHtml = DOMPurify.sanitize(protectedElement.outerHTML, { 
                             DATA_ATTR: false,
                             ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                            ADD_TAGS: ['div', 'span', 'code', 'pre']
+                            ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
                         });
                         
                         document.execCommand('insertHTML', false, sanitizedHtml + (config.inline ? '' : '<p><br></p>'));
@@ -2133,11 +2176,36 @@ const yEditor = {
             }
         });
 
-        // Handle image wrappers specifically to return clean <img> tags
+        // Handle image wrappers specifically to return clean <img> tags / <figure> with caption
         tempDiv.querySelectorAll('.yeditor-image-wrapper').forEach(wrapper => {
             const img = wrapper.querySelector('img');
-            if (img) {
-                // Preserve alignment classes from wrapper onto the image
+            if (!img) {
+                wrapper.remove();
+                return;
+            }
+            const captionEl = wrapper.querySelector('.yeditor-image-caption');
+            const captionText = captionEl ? captionEl.textContent.trim() : '';
+            if (captionText) {
+                // Keep wrapper as <figure> with <figcaption>
+                const figure = document.createElement('figure');
+                figure.className = 'yeditor-image-wrapper';
+                if (wrapper.classList.contains('align-left')) figure.classList.add('align-left');
+                if (wrapper.classList.contains('align-right')) figure.classList.add('align-right');
+                if (wrapper.classList.contains('align-center')) figure.classList.add('align-center');
+                // Preserve size styles from wrapper/img
+                if (wrapper.style.width) figure.style.width = wrapper.style.width;
+                if (wrapper.style.height) figure.style.height = wrapper.style.height;
+                // Clone img (with its width/height styles)
+                const imgClone = img.cloneNode(true);
+                imgClone.removeAttribute('contenteditable');
+                figure.appendChild(imgClone);
+                const figCaption = document.createElement('figcaption');
+                figCaption.className = 'yeditor-image-caption';
+                figCaption.textContent = captionText;
+                figure.appendChild(figCaption);
+                wrapper.parentNode.replaceChild(figure, wrapper);
+            } else {
+                // No caption: original behavior — unwrap to just <img> with alignment as inline style
                 if (wrapper.classList.contains('align-left')) img.style.cssFloat = 'left';
                 if (wrapper.classList.contains('align-right')) img.style.cssFloat = 'right';
                 if (wrapper.classList.contains('align-center')) {
@@ -2145,6 +2213,8 @@ const yEditor = {
                     img.style.marginLeft = 'auto';
                     img.style.marginRight = 'auto';
                 }
+                // Remove caption element if empty
+                if (captionEl) captionEl.remove();
                 wrapper.parentNode.replaceChild(img, wrapper);
             }
         });

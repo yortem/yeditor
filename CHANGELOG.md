@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1] - 2026-08-22
+### Added
+- Image caption support: new "כיתוב תמונה" field in image modal, saved as `<figure><figcaption>` and styled for light/dark themes
+### Changed
+- Image alignment picker redesigned as segmented control with short labels — ללא / שמאל / אמצע / ימין (imageAlignNone/Left/Center/Right) instead of repeating "יישור"
+
 ## [1.9.0] - 2026-08-21
 ### Added
 - Inline `<code>` toolbar button with toggle (wrap/unwrap selection), styled `code`/`pre` blocks for light/dark themes (`src/editor.js`, `src/editor.css`, `src/lang`)

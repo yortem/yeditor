@@ -54,5 +54,11 @@
     "alignment": "Alignment",
     "auto": "Auto",
     "none": "None",
-    "code": "Code"
+    "code": "Code",
+    "caption": "Caption",
+    "captionPlaceholder": "Add caption...",
+    "imageAlignNone": "None",
+    "imageAlignLeft": "Left",
+    "imageAlignCenter": "Center",
+    "imageAlignRight": "Right"
 }

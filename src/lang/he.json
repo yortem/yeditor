@@ -46,5 +46,11 @@
     "linkPlaceholderSimple": "https://...",
     "browseServer": "בחירת תמונה",
     "source": "קוד מקור",
-    "code": "קוד"
+    "code": "קוד",
+    "caption": "כיתוב תמונה",
+    "captionPlaceholder": "הוסף כיתוב...",
+    "imageAlignNone": "ללא",
+    "imageAlignLeft": "שמאל",
+    "imageAlignCenter": "אמצע",
+    "imageAlignRight": "ימין"
 }

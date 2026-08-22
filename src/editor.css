@@ -209,6 +209,30 @@
 .yeditor-image-wrapper.align-center img {
     display: inline-block;
 }
+.yeditor-image-wrapper .yeditor-image-caption,
+.yeditor-content figure figcaption,
+.yeditor-content figcaption.yeditor-image-caption {
+    display: block;
+    font-size: 12px;
+    color: #6c757d;
+    text-align: center;
+    margin-top: 6px;
+    font-style: italic;
+    line-height: 1.4;
+    line-height: normal;
+    padding: 4px 8px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 4px;
+    word-break: break-word;
+}
+:host([data-theme="dark"]) .yeditor-image-wrapper .yeditor-image-caption,
+:host([data-theme="dark"]) .yeditor-content figure figcaption {
+    color: #a0aec0;
+    background: rgba(255,255,255,0.05);
+}
+.yeditor-image-wrapper:has(.yeditor-image-caption) {
+    line-height: 1.4;
+}
 .yeditor-image-wrapper.resizable {
     border: 2px dashed #4c51bf;
 }
@@ -714,18 +738,51 @@
 }
 .image-alignment-options {
     display: flex;
-    gap: 15px;
+    gap: 6px;
     margin-top: 8px;
+    background: #f1f3f5;
+    padding: 4px;
+    border-radius: 8px;
 }
 .alignment-option {
+    flex: 1;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    color: #555;
+    user-select: none;
 }
 .alignment-option input[type="radio"] {
-    margin: 0;
+    display: none;
+}
+.alignment-option:has(input:checked) {
+    background: #fff;
+    border-color: #dee2e6;
+    color: #4c51bf;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.alignment-option:hover:not(:has(input:checked)) {
+    color: #333;
+    background: rgba(255,255,255,0.6);
+}
+:host([data-theme="dark"]) .image-alignment-options {
+    background: #1a202c;
+}
+:host([data-theme="dark"]) .alignment-option {
+    color: #a0aec0;
+}
+:host([data-theme="dark"]) .alignment-option:has(input:checked) {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #a3bffa;
 }
 
 /* --- Link Search Results --- */
