@@ -7,23 +7,31 @@ yEditor is an open-source project for creating a JavaScript-based WYSIWYG conten
 ## Version & CDN Usage
 
 ### Using via CDN (Recommended)
+
+The built files are served directly from this repository's release tags via jsDelivr:
+
 ```html
-<!-- Latest version -->
-<script src="https://unpkg.com/yeditor/dist/editor.min.js"></script>
+<!-- Latest release -->
+<script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@latest/dist/editor.min.js"></script>
 
-<!-- Specific version -->
-<script src="https://unpkg.com/yeditor@v1.0.0/dist/editor.min.js"></script>
-
-<!-- Auto-update: gets latest v1.x.x (patch updates) -->
-<script src="https://unpkg.com/yeditor@^1.0.0/dist/editor.min.js"></script>
+<!-- Pinned version (recommended for production) -->
+<script src="https://cdn.jsdelivr.net/gh/yortem/yeditor@v1.10.0/dist/editor.min.js"></script>
 ```
 
+The editor loads `editor.min.css` and its language files relative to the script URL, so keep the `dist/` layout intact (jsDelivr does this automatically). Pin a version in production — `@latest` switches when a new release is published.
+
 ### Using via GitHub Releases
-Download specific releases from the [Releases page](https://github.com/yourusername/yeditor/releases).
+
+Download a specific release from the [Releases page](https://github.com/yortem/yeditor/releases), host the contents of its `dist/` folder, and load the script from there:
+
+```html
+<script src="/path/to/dist/editor.min.js"></script>
+```
 
 ### Programmatic Version Check
+
 ```javascript
-console.log(yEditor.version); // e.g., "1.0.0"
+console.log(yEditor.version); // e.g. "1.10.0" from a build, "dev" when loading src/editor.js
 ```
 
 ## Performance & Visual Stability
@@ -50,6 +58,8 @@ The editor will automatically replace the textarea once initialization is comple
 - **Protected Custom Blocks**: Support for non-editable "modules" (shortcodes/embeds) that can be edited via a bubble menu.
 - **Multi-language Support**: A JSON-based translation structure allows for easy addition of new languages.
 - **Theming**: Built-in support for light and dark themes.
+- **Code Blocks**: Inline `<code>` and real, writable `<pre><code>` blocks that stay left-to-right even in RTL editors, with smart paste detection and a dark code theme.
+- **Height Control**: Fixed `height` or flexible `maxHeight`, with internal scrolling when the content is taller.
 - **Markdown Support**: Automatic conversion of Markdown shortcuts for headings (`## H2`).
 - **Extensibility API**: Powerful API to add custom buttons with searchable prompts and multi-selection.
 
@@ -61,7 +71,11 @@ The editor will automatically replace the textarea once initialization is comple
 2.  Ensure your HTML page includes the JS file:
 
     ```html
+    <!-- development (unminified source) -->
     <script src="src/editor.js"></script>
+
+    <!-- or the production build -->
+    <script src="dist/editor.min.js"></script>
     ```
 
 3.  Add a `<textarea>` to your page with a unique `id`.
