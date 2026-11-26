@@ -26,6 +26,29 @@
     resize: none;
 }
 
+/* מצב גובה מקסימלי — העורך גדל עם התוכן עד הגובה שנקבע, ואז נגלל בפנים */
+:host([data-yeditor-max-height]) {
+    display: flex;
+    flex-direction: column;
+}
+:host([data-yeditor-max-height]) .yeditor-content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 200px;
+}
+:host([data-yeditor-max-height]) .yeditor-source {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 200px;
+    resize: none;
+}
+:host([data-yeditor-fixed-height]) .yeditor-toolbar,
+:host([data-yeditor-fixed-height]) .yeditor-statusbar,
+:host([data-yeditor-max-height]) .yeditor-toolbar,
+:host([data-yeditor-max-height]) .yeditor-statusbar {
+    flex-shrink: 0;
+}
+
 /* עיצוב סרגל הכלים */
 .yeditor-toolbar {
     display: flex;
@@ -111,24 +134,51 @@
 }
 
 /* --- Code / Pre Styles --- */
+/* Code is always LTR, even inside an RTL editor. `unicode-bidi: isolate`
+   keeps the code isolated from the surrounding RTL text so punctuation
+   (`;`, `=`, quotes) does not jump to the wrong side. */
 .yeditor-content code {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', 'SFMono-Regular',
+                 Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+    font-variant-ligatures: none;
     background-color: #f1f3f5;
     color: #c92a2a;
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
     font-size: 0.9em;
+    direction: ltr;
+    unicode-bidi: isolate;
 }
+/* Code blocks are a real, writable block: dark surface with light text in both
+   themes, so code always looks like code and is easy to edit. */
 .yeditor-content pre {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 5px;
-    padding: 12px 15px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', 'SFMono-Regular',
+                 Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+    font-variant-ligatures: none;
+    font-size: 13.5px;
+    line-height: 1.65;
+    background-color: #1c1f24; /* very dark gray */
+    color: #f1f5f9;            /* near-white text */
+    border: 1px solid #0f1115;
+    border-radius: 8px;
+    padding: 14px 16px;
     margin-block: 1em;
     overflow-x: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: isolate;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    caret-color: #ffffff;
+    cursor: text;
+    min-height: 2.9em;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.yeditor-content pre:focus-within {
+    border-color: #4c51bf;
+    box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.35);
 }
 .yeditor-content pre code {
     background: none;
@@ -136,15 +186,28 @@
     padding: 0;
     border-radius: 0;
     font-size: inherit;
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+.yeditor-content pre::selection,
+.yeditor-content pre ::selection {
+    background-color: #3b82f6;
+    color: #ffffff;
+}
+/* Hebrew text inside a code block/string still renders RTL, but the block
+   itself stays LTR. */
+.yeditor-content pre code bdi,
+.yeditor-content pre code span[dir="rtl"] {
+    unicode-bidi: isolate;
 }
 :host([data-theme="dark"]) .yeditor-content code {
     background-color: #2d3748;
     color: #feb2b2;
 }
 :host([data-theme="dark"]) .yeditor-content pre {
-    background-color: #1a202c;
-    border-color: #4a5568;
-    color: #e2e8f0;
+    background-color: #0f1115;
+    border-color: #2d3748;
+    color: #e6edf3;
 }
 
 /* --- Table Styles --- */
@@ -285,6 +348,43 @@
     display: flex;
     align-items: center;
     gap: 4px;
+}
+.yeditor-statusbar-end {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+/* HTML source view toggle — a mode switch, not a formatting command */
+.yeditor-statusbar .yeditor-source-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: #6c757d;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.yeditor-statusbar .yeditor-source-toggle:hover {
+    background-color: #eef2f7;
+    color: #333;
+}
+.yeditor-statusbar .yeditor-source-toggle.active {
+    background-color: #e0e7ff;
+    border-color: #c7d2fe;
+    color: #334d99;
+}
+.yeditor-statusbar .yeditor-source-toggle svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
 }
 .yeditor-dom-path span {
     display: flex;
@@ -559,6 +659,15 @@
     background-color: #1a202c; /* gray-900 */
     border-top-color: #4a5568; /* gray-700 */
     color: #a0aec0; /* gray-400 */
+}
+:host([data-theme="dark"]) .yeditor-statusbar .yeditor-source-toggle:hover {
+    background-color: #2d3748;
+    color: #e2e8f0;
+}
+:host([data-theme="dark"]) .yeditor-statusbar .yeditor-source-toggle.active {
+    background-color: #4c51bf;
+    border-color: #4c51bf;
+    color: #ffffff;
 }
 :host([data-theme="dark"]) .yeditor-dropdown-content {
     background-color: #2d3748; /* gray-800 */

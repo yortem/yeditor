@@ -77,14 +77,19 @@ The editor will automatically replace the textarea once initialization is comple
         lang: 'en',       // e.g., 'en', 'he'
         direction: 'ltr', // 'ltr' or 'rtl'
         theme: 'light',   // 'light' or 'dark'
-        height: '400px',  // optional: fixed editor height (e.g., '400px', '50vh')
+        height: '400px',  // optional: fixed editor height (e.g., '400px', '50vh', 400)
+        maxHeight: '700px', // optional: grow with content up to this height, then scroll internally
         quickLinksApiUrl: '/api/links',  // see Quick Links section below
         imageGalleryApiUrl: '/api/images',
         fileBrowserUrl: '/path/to/your/file-browser.html'
     });
     ```
 
-    **`height`**: By default, the editor grows with its content. Set this option to a CSS height value (e.g., `'400px'`, `'50vh'`) to give the editor a fixed height — the toolbar stays visible at the top and the content area scrolls internally.
+    **`height`**: By default, the editor grows with its content. Set this option to give the editor a fixed height — the toolbar stays visible at the top and the content area scrolls internally.
+
+    **`maxHeight`**: Keep the flexible behavior, but cap it. The editor grows with its content up to this height; once the content is taller, the editor stops growing and the content area scrolls internally. Useful when you don't want a short article to leave a huge empty editor.
+
+    Both options accept a CSS length (`'700px'`, `'70vh'`, `'calc(100vh - 120px)'`) or a plain number, which is treated as pixels (`height: 700`). If both are set, `height` wins.
 
 ### Quick Links (`quickLinksApiUrl`)
 
@@ -147,6 +152,26 @@ yEditor.init('#my-editor', {
 ```
 
 > Note: `transformLinkResults` runs **before** the client-side filter, so entries you add will also be filtered by the query.
+
+## Code Blocks
+
+Code is treated as a first-class block, not as fragile text:
+
+- Select one line and click the code button to get inline `<code>`; select several lines (or whole blocks) to get a real code block: `<pre><code>...</code></pre>`.
+- Clicking the code button with a collapsed caret inserts an empty code block you can type into immediately.
+- Press `Enter` on an empty last line to leave the block (one `Shift+Enter` adds an extra empty line). `Backspace` in an empty block removes it.
+- Pasting code from an IDE, a chat, a rendered `<pre>`, or a JSON payload is detected automatically and inserted as a code block, byte for byte.
+- Code is always displayed left-to-right (also in RTL editors), and code blocks use a dark surface, light text, and a monospace font in both themes. The saved markup stays exactly `<pre><code>...</code></pre>` — no extra attributes or classes are added.
+
+If code blocks on your published site still render right-to-left (because the page is RTL), add this to your site CSS:
+
+```css
+pre, pre code {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: isolate;
+}
+```
 
 ## Extensibility API (Custom Buttons)
 

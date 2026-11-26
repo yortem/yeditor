@@ -22,14 +22,23 @@ const yEditor = {
             { command: 'createLink', title: 'link', icon: '<svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>' },
             { command: 'unlink', title: 'unlink', icon: '<svg viewBox="0 0 24 24"><path d="M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.96l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5zM7 9h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1S5.29 9 7 9zm-1 4h10v-2H6zm-3.24-8.76L2 6.24l19.76 19.76 1.41-1.41z"/></svg>' },
             { command: 'formatBlock', value: 'blockquote', title: 'quote', icon: '<svg viewBox="0 0 24 24"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>' },
-            { command: 'code', title: 'code', icon: '<svg viewBox="0 0 24 24"><path d="M8.17 14.5L6 12l2.17-2.5.7.7L7.34 12l1.53 1.8-.7.7zm7.66 0l-.7-.7L16.66 12l-1.53-1.8.7-.7L18 12l-2.17 2.5zM11 17h2l2-10h-2z"/></svg>' },
+            { command: 'code', title: 'code', icon: '<svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>' },
             { command: 'insertTable', title: 'table', icon: '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4zm0-6H4v-4h4zm0-6H4V4h4zm6 12h-4v-4h4zm0-6h-4v-4h4zm0-6h-4V4h4zm6 12h-4v-4h4zm0-6h-4v-4h4zm0-6h-4V4h4z"/></svg>' },
             { command: 'insertHorizontalRule', title: 'horizontalRule', icon: '<svg viewBox="0 0 24 24"><path d="M4 11h16v2H4z"/></svg>' },
             { command: 'insertImage', title: 'insertImage', icon: '<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"/></svg>' },
             { command: 'insertUnorderedList', title: 'unorderedList', icon: '<svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7zm0-6h14v-2H7zm0-8v2h14V5z"/></svg>' },
             { command: 'insertOrderedList', title: 'orderedList', icon: '<svg viewBox="0 0 24 24"><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2zm1-9h1V4H2v1h1zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2zm5-6v2h14V5zm0 14h14v-2H7zm0-6h14v-2H7z"/></svg>' },
-            { command: 'toggleSource', title: 'source', icon: '<svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>' },
         ];
+    },
+
+    /**
+     * Accepts a number (700) or a CSS size ('700px', '70vh') and returns a
+     * valid CSS length for the editor container.
+     */
+    _toCssSize: function(value) {
+        if (typeof value === 'number' && isFinite(value)) return `${value}px`;
+        if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) return `${value.trim()}px`;
+        return value;
     },
 
     init: async function(selector, options = {}) {
@@ -43,6 +52,7 @@ const yEditor = {
             fileBrowserOptions: {},
             fileBrowserUrl: null,
             height: null,
+            maxHeight: null,
             renderLinkItem: null,
             transformLinkResults: null,
             ...options
@@ -88,8 +98,11 @@ const yEditor = {
         container.dataset.theme = config.theme; // Set theme attribute
         container.dir = config.direction; // Set direction attribute
         if (config.height) {
-            container.style.height = config.height;
+            container.style.height = this._toCssSize(config.height);
             container.dataset.yeditorFixedHeight = '';
+        } else if (config.maxHeight) {
+            container.style.maxHeight = this._toCssSize(config.maxHeight);
+            container.dataset.yeditorMaxHeight = '';
         }
         const shadowRoot = container.attachShadow({ mode: 'open' });
         this._container = container; // Store container for event dispatching
@@ -108,6 +121,8 @@ const yEditor = {
         const toolbar = this.createToolbar();
         const contentArea = this.createContentArea(textarea.value, config.direction);
         this._protectBlocks(contentArea); // Protect any blocks in the initial content
+        this._normalizeCodeBlocks(contentArea);
+        this._decorateCodeBlocks(contentArea);
         const sourceArea = document.createElement('textarea');
         sourceArea.className = 'yeditor-source';
         sourceArea.style.display = 'none';
@@ -122,9 +137,22 @@ const yEditor = {
         statusBarElement.className = 'yeditor-statusbar';
         statusBarElement.innerHTML = `
             <div class="yeditor-dom-path"></div>
-            <div class="yeditor-word-count"></div>
+            <div class="yeditor-statusbar-end">
+                <div class="yeditor-word-count"></div>
+                <button type="button" class="yeditor-source-toggle" title="${this.t('source')}">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h6v2H8v-2z"/></svg><span>HTML</span>
+                </button>
+            </div>
         `;
         shadowRoot.appendChild(statusBarElement);
+
+        const sourceToggle = statusBarElement.querySelector('.yeditor-source-toggle');
+        if (sourceToggle) {
+            sourceToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                this._toggleSourceView(shadowRoot, sourceToggle, textarea);
+            });
+        }
 
         // הוסף את העורך לדף לפני ה-textarea
         textarea.parentNode.insertBefore(container, textarea);
@@ -191,11 +219,13 @@ const yEditor = {
         // Consistent sanitization with custom block support
         const sanitizedContent = DOMPurify.sanitize(content, { 
             DATA_ATTR: false,
-            ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+            ADD_ATTR: ['style', 'dir', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
             ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
         });
         contentArea.innerHTML = sanitizedContent;
         this._protectBlocks(contentArea); // Protect blocks in the newly set content
+        this._normalizeCodeBlocks(contentArea);
+        this._decorateCodeBlocks(contentArea);
 
         // Manually trigger the update logic
         contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
@@ -394,6 +424,10 @@ const yEditor = {
             toolbar.appendChild(button);
         });
 
+        // --- Source View Toggle ---
+        // Lives in the status bar (see init) so it is clearly a view mode and
+        // cannot be confused with the formatting buttons.
+
         return toolbar;
     },
 
@@ -405,10 +439,91 @@ const yEditor = {
         // Ensure custom block attributes are preserved during initial load
         contentArea.innerHTML = DOMPurify.sanitize(initialValue, { 
             DATA_ATTR: false,
-            ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+            ADD_ATTR: ['style', 'dir', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
             ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
         });
         return contentArea;
+    },
+
+    /**
+     * Switches between the WYSIWYG view and the HTML source view.
+     * Can be triggered from the status-bar "HTML" button (or any button).
+     * @param {ShadowRoot} shadowRoot The editor shadow root.
+     * @param {HTMLElement} [button] The toggle button, used for the active state.
+     * @param {HTMLTextAreaElement} [textarea] The original textarea to sync to.
+     */
+    _toggleSourceView: function(shadowRoot, button, textarea) {
+        const contentArea = shadowRoot.querySelector('.yeditor-content');
+        const sourceArea = shadowRoot.querySelector('.yeditor-source');
+        const toolbar = shadowRoot.querySelector('.yeditor-toolbar');
+        const originalTextarea = textarea || this._textarea;
+        if (!contentArea || !sourceArea || !toolbar || !originalTextarea) return;
+
+        const isSource = sourceArea.style.display !== 'none';
+
+        if (isSource) {
+            // Switch back to WYSIWYG
+            contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value, {
+                DATA_ATTR: false,
+                ADD_ATTR: ['style', 'dir', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
+            });
+            this._protectBlocks(contentArea);
+            this._normalizeCodeBlocks(contentArea);
+            this._decorateCodeBlocks(contentArea);
+            sourceArea.style.display = 'none';
+            contentArea.style.display = 'block';
+            if (button) button.classList.remove('active');
+
+            // Sync and dispatch change
+            originalTextarea.value = this._cleanHTML(contentArea.innerHTML);
+            this._dispatchEvent('yeditor-change', { content: originalTextarea.value });
+            this.updateDomPath(shadowRoot, contentArea);
+            this.updateWordCount(shadowRoot, contentArea);
+
+            // Enable formatting buttons
+            toolbar.querySelectorAll('button[data-command], .yeditor-dropdown').forEach(el => {
+                if (el !== button && !el.closest('.yeditor-dropdown')) {
+                    el.classList.remove('disabled');
+                    el.style.pointerEvents = 'auto';
+                }
+                if (el.classList.contains('yeditor-dropdown')) {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                }
+            });
+
+            contentArea.focus();
+        } else {
+            // Switch to source view
+            sourceArea.value = this._cleanHTML(contentArea.innerHTML);
+            contentArea.style.display = 'none';
+            sourceArea.style.display = 'block';
+            if (button) button.classList.add('active');
+            // Sync original textarea
+            originalTextarea.value = sourceArea.value;
+
+            // Clear DOM path
+            const domPathEl = shadowRoot.querySelector('.yeditor-dom-path');
+            if (domPathEl) domPathEl.innerHTML = '';
+            this.updateWordCount(shadowRoot, sourceArea);
+
+            // Disable formatting buttons
+            toolbar.querySelectorAll('button[data-command], .yeditor-dropdown').forEach(el => {
+                if (el !== button && !el.closest('.yeditor-dropdown')) {
+                    el.classList.add('disabled');
+                    el.style.pointerEvents = 'none';
+                }
+                if (el.classList.contains('yeditor-dropdown')) {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.4';
+                }
+            });
+
+            sourceArea.focus();
+        }
+
+        shadowRoot.querySelectorAll('.yeditor-dropdown.active').forEach(d => d.classList.remove('active'));
     },
 
     setupEventListeners: function(shadowRoot, toolbar, contentArea, sourceArea, textarea, container) {
@@ -547,65 +662,7 @@ const yEditor = {
             } else if (command === 'setDirection') {
                 this.setBlockDirection(shadowRoot, value);
             } else if (command === 'toggleSource') {
-                const contentArea = shadowRoot.querySelector('.yeditor-content');
-                const sourceArea = shadowRoot.querySelector('.yeditor-source');
-                const isSource = sourceArea.style.display !== 'none';
-
-                if (isSource) {
-                    // Switch to WYSIWYG
-                    contentArea.innerHTML = DOMPurify.sanitize(sourceArea.value, { 
-                        DATA_ATTR: false,
-                        ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
-                        ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
-                    });
-                    this._protectBlocks(contentArea); // Re-protect blocks from raw HTML
-                    sourceArea.style.display = 'none';
-                    contentArea.style.display = 'block';
-                    button.classList.remove('active');
-                    
-                    // Sync and dispatch change
-                    textarea.value = this._cleanHTML(contentArea.innerHTML);
-                    this._dispatchEvent('yeditor-change', { content: textarea.value });
-                    this.updateDomPath(shadowRoot, contentArea);
-                    this.updateWordCount(shadowRoot, contentArea);
-
-                    // Enable other buttons
-                    toolbar.querySelectorAll('button[data-command], .yeditor-dropdown').forEach(el => {
-                        if (el !== button && !el.closest('.yeditor-dropdown')) {
-                            el.classList.remove('disabled');
-                            el.style.pointerEvents = 'auto';
-                        }
-                        if (el.classList.contains('yeditor-dropdown')) {
-                             el.style.pointerEvents = 'auto';
-                             el.style.opacity = '1';
-                        }
-                    });
-                } else {
-                    // Switch to Source
-                    sourceArea.value = this._cleanHTML(contentArea.innerHTML); // Show clean HTML in source view
-                    contentArea.style.display = 'none';
-                    sourceArea.style.display = 'block';
-                    button.classList.add('active');
-                    // Sync original textarea
-                    textarea.value = sourceArea.value;
-
-                    // Clear DOM path
-                    const domPathEl = shadowRoot.querySelector('.yeditor-dom-path');
-                    if (domPathEl) domPathEl.innerHTML = '';
-                    this.updateWordCount(shadowRoot, sourceArea);
-
-                    // Disable other buttons
-                    toolbar.querySelectorAll('button[data-command], .yeditor-dropdown').forEach(el => {
-                        if (el !== button && !el.closest('.yeditor-dropdown')) {
-                            el.classList.add('disabled');
-                            el.style.pointerEvents = 'none';
-                        }
-                        if (el.classList.contains('yeditor-dropdown')) {
-                             el.style.pointerEvents = 'none';
-                             el.style.opacity = '0.4';
-                        }
-                    });
-                }
+                this._toggleSourceView(shadowRoot, button, textarea);
                 return;
             } else {
                 // השתמש ב-execCommand לפעולות עיצוב סטנדרטיות
@@ -616,7 +673,9 @@ const yEditor = {
         });
 
         // 4. סנכרן את התוכן בחזרה ל-textarea המקורי בכל שינוי
-        contentArea.addEventListener('input', () => {
+        contentArea.addEventListener('input', (e) => {
+            // keep typed text inside <code> when the browser inserts it in <pre>
+            if (!e.isComposing) this._normalizeCodeBlocks(contentArea);
             // Use _cleanHTML to strip internal attributes before saving to textarea
             textarea.value = this._cleanHTML(contentArea.innerHTML);
             this._dispatchEvent('yeditor-change', { content: textarea.value });
@@ -637,6 +696,40 @@ const yEditor = {
             const html = clipboardData.getData('text/html');
             const text = clipboardData.getData('text/plain');
 
+            const selection = shadowRoot.getSelection ? shadowRoot.getSelection() : window.getSelection();
+            if (!selection || !selection.rangeCount) return;
+            const range = selection.getRangeAt(0);
+
+            // Pasting inside an existing code block: keep the text exactly as-is
+            const insidePre = this._closestIn(range.startContainer, contentArea, 'pre');
+            if (insidePre) {
+                const codeText = (this._extractCodeFromHTML(html) || text || '')
+                    .replace(/\r\n?/g, '\n')
+                    .replace(/\u00a0/g, ' ');
+                if (!codeText) return;
+                range.deleteContents();
+                const textNode = document.createTextNode(codeText);
+                range.insertNode(textNode);
+                range.setStartAfter(textNode);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                this._normalizeCodeBlocks(contentArea);
+                contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                return;
+            }
+
+            // Pasting code (from an IDE, a chat, a rendered <pre>, or a JSON payload)
+            // should create a proper <pre><code> block instead of inline text.
+            let codeToInsert = html ? this._extractCodeFromHTML(html) : null;
+            if (codeToInsert === null && text && this._isCodeLikeText(text)) {
+                codeToInsert = text;
+            }
+            if (codeToInsert !== null) {
+                this._insertCodeBlock(contentArea, codeToInsert, range);
+                return;
+            }
+
             if (html) {
                 // Sanitize HTML to keep structure but strip styles and classes
                 const sanitizedHtml = DOMPurify.sanitize(html, {
@@ -650,6 +743,7 @@ const yEditor = {
                     ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'dir']
                 });
                 document.execCommand('insertHTML', false, sanitizedHtml);
+                this._decorateCodeBlocks(contentArea);
             } else {
                 document.execCommand('insertText', false, text);
             }
@@ -717,6 +811,10 @@ const yEditor = {
         contentArea.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
                 this._handleTabInTable(e);
+                return;
+            }
+            if (this._handleCodeBlockKeydown(e, contentArea)) {
+                e.preventDefault();
             }
         });
 
@@ -1796,6 +1894,451 @@ const yEditor = {
         }
     },
 
+    /**
+     * Returns the closest ancestor of `node` that matches `selector`,
+     * stopping at (and excluding) `container`.
+     */
+    _closestIn: function(node, container, selector) {
+        let el = node && node.nodeType === Node.ELEMENT_NODE ? node : (node ? node.parentElement : null);
+        while (el && el !== container) {
+            if (el.matches && el.matches(selector)) return el;
+            el = el.parentElement;
+        }
+        return null;
+    },
+
+    /**
+     * Returns the closest block-level ancestor of `node` (or the container).
+     */
+    _closestBlock: function(node, container) {
+        const blockSelector = 'p,div,h1,h2,h3,h4,h5,h6,li,blockquote,pre,td,th,figure,figcaption,ul,ol';
+        return this._closestIn(node, container, blockSelector) || container;
+    },
+
+    /**
+     * Converts a DOM Range into plain text, keeping line breaks between blocks,
+     * <br> elements and <pre> content. Used when turning a selection into a
+     * <pre><code> block.
+     */
+    _rangeToPlainText: function(range, trimEdges = true) {
+        const blockTags = new Set([
+            'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DD', 'DIV', 'DL', 'DT',
+            'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3',
+            'H4', 'H5', 'H6', 'HEADER', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE',
+            'SECTION', 'TABLE', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'UL'
+        ]);
+
+        const fragment = range.cloneContents();
+        let out = '';
+
+        const walk = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                out += node.nodeValue;
+                return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            if (node.tagName === 'BR') {
+                out += '\n';
+                return;
+            }
+            const isBlock = blockTags.has(node.tagName);
+            if (isBlock && out && !out.endsWith('\n')) out += '\n';
+            node.childNodes.forEach(walk);
+            if (isBlock && out && !out.endsWith('\n')) out += '\n';
+        };
+
+        fragment.childNodes.forEach(walk);
+        let text = out.replace(/\u00a0/g, ' ');
+        if (trimEdges) text = text.replace(/^\n/, '').replace(/\n$/, '');
+        return text;
+    },
+
+    /**
+     * Escapes plain text for safe insertion via execCommand('insertHTML').
+     */
+    _escapeHTML: function(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * Heuristic: does this plain text look like source code (or JSON) rather
+     * than prose? Used by the paste handler to auto-create a code block.
+     */
+    _isCodeLikeText: function(text) {
+        if (!text) return false;
+        const normalized = text.replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
+        const trimmed = normalized.trim();
+        if (!trimmed) return false;
+
+        // JSON (e.g. Google suggest payloads: ["seo", [...], ...])
+        if (/^[\[{]/.test(trimmed)) {
+            try {
+                JSON.parse(trimmed);
+                return true;
+            } catch (e) {
+                if (trimmed.includes('\n')) return true;
+            }
+        }
+
+        const lines = normalized.split('\n').filter(line => line.trim().length);
+        if (!lines.length) return false;
+
+        const codeSignal = (line) => (
+            /[;{}]\s*$/.test(line) ||
+            /=>/.test(line) ||
+            /^\s{2,}\S/.test(line) ||
+            /^\s*(?:\/\/|\/\*|\*|<!--)/.test(line) ||
+            /\b(?:const|let|var|function|class|import|export|return|await|async|new|this)\b/.test(line) ||
+            /\b(?:def|elif|lambda|pass|public|private|protected|void|static)\b/.test(line) ||
+            /<\?php|\?>/.test(line) ||
+            /<\/?[a-zA-Z][\w:-]*(?:\s[^>]*)?>/.test(line) ||
+            /\b(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)\b/.test(line)
+        );
+
+        const strongCount = lines.filter(codeSignal).length;
+        const ratio = strongCount / lines.length;
+
+        if (lines.length === 1) {
+            const line = lines[0].trim();
+            return (
+                /[;{}]\s*$/.test(line) ||
+                /=>/.test(line) ||
+                /^(?:const|let|var|function|class|import|export|def|return|public|private|#include|<\?php|\/\/|\/\*)/.test(line) ||
+                /^<\/?[a-zA-Z][\w:-]*(?:\s[^>]*)?>/.test(line)
+            );
+        }
+
+        return strongCount >= 2 && ratio >= 0.5;
+    },
+
+    /**
+     * Extracts code from clipboard HTML. Returns `null` when the HTML is not
+     * essentially a single code block (so normal rich-text pasting is kept).
+     */
+    _extractCodeFromHTML: function(html) {
+        if (!html || !/<(pre|code)[\s>]/i.test(html)) return null;
+
+        let doc;
+        try {
+            doc = new DOMParser().parseFromString(html, 'text/html');
+        } catch (e) {
+            return null;
+        }
+
+        const strip = (str) => (str || '').replace(/\u00a0/g, ' ').replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+        const weight = (str) => (str || '').replace(/\s/g, '').length;
+        const totalWeight = weight(doc.body.textContent);
+        if (!totalWeight) return null;
+
+        const pres = Array.from(doc.querySelectorAll('pre'));
+        if (pres.length) {
+            const codeText = pres.map(pre => strip(pre.textContent)).join('\n\n');
+            if (weight(codeText) / totalWeight >= 0.7) return codeText;
+            return null;
+        }
+
+        const codes = Array.from(doc.querySelectorAll('code'));
+        const codeText = codes.map(code => strip(code.textContent)).join('\n');
+        if (codeText.includes('\n') && weight(codeText) / totalWeight >= 0.7) {
+            return codeText;
+        }
+        return null;
+    },
+
+    /**
+     * Inserts a <pre><code dir="ltr"> block at the current selection and places
+     * the caret in the paragraph after it.
+     */
+    _insertCodeBlock: function(contentArea, codeText, savedRange, allowEmpty) {
+        const selection = this._shadowRoot && this._shadowRoot.getSelection
+            ? this._shadowRoot.getSelection()
+            : window.getSelection();
+        if (!selection) return false;
+        const range = savedRange || (selection.rangeCount ? selection.getRangeAt(0) : null);
+        if (!range) return false;
+
+        const body = (codeText || '')
+            .replace(/\r\n?/g, '\n')
+            .replace(/\u00a0/g, ' ')
+            .replace(/^\n+/, '')
+            .replace(/\n+$/, '');
+        const isEmpty = !body.trim();
+        if (isEmpty && !allowEmpty) return false;
+
+        // restore selection and focus (clicking a toolbar button may have moved them)
+        contentArea.focus();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        const pre = document.createElement('pre');
+        pre.setAttribute('dir', 'ltr');
+        const code = document.createElement('code');
+        code.setAttribute('dir', 'ltr');
+        if (!isEmpty) code.textContent = body;
+        pre.appendChild(code);
+        this._decorateCodeBlocks(pre);
+
+        // Replace the selection with the code block. Inserting the DOM node
+        // directly (instead of execCommand insertHTML) keeps the code byte-exact.
+        range.deleteContents();
+        range.insertNode(pre);
+
+        // The browser may have placed the block inside a paragraph; lift it out
+        // so the saved HTML is a clean <pre><code>...</code></pre>. Inside list
+        // items or table cells a nested block is valid, so leave those alone.
+        let parent = pre.parentElement;
+        while (parent && parent !== contentArea) {
+            if (!/^(P|DIV|H[1-6]|BLOCKQUOTE|SPAN)$/.test(parent.tagName)) break;
+            const after = parent.cloneNode(false);
+            while (pre.nextSibling) after.appendChild(pre.nextSibling);
+            parent.parentNode.insertBefore(after, parent.nextSibling);
+            parent.parentNode.insertBefore(pre, after);
+            const hasContent = parent.textContent.trim() || parent.querySelector('img, br, hr, table');
+            if (!hasContent) parent.remove();
+            parent = pre.parentElement;
+        }
+
+        // Drop empty blocks left over from replacing the selected text.
+        let prev = pre.previousElementSibling;
+        while (prev && /^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(prev.tagName) &&
+               !prev.textContent.trim() && !prev.querySelector('img, br, hr, table')) {
+            const before = prev.previousElementSibling;
+            prev.remove();
+            prev = before;
+        }
+
+        // Always keep an editable block after the code block.
+        let next = pre.nextElementSibling;
+        while (next && /^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(next.tagName) &&
+               !next.textContent.trim() && !next.querySelector('img, br, hr, table')) {
+            const afterNext = next.nextElementSibling;
+            next.remove();
+            next = afterNext;
+        }
+        if (!next) {
+            next = document.createElement('p');
+            next.appendChild(document.createElement('br'));
+            pre.parentNode.insertBefore(next, pre.nextSibling);
+        } else if (/^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(next.tagName) && !next.firstChild) {
+            next.appendChild(document.createElement('br'));
+        }
+
+        // Put the caret inside an empty code block so the user can start typing.
+        // For code that was just wrapped, place the caret after the block.
+        const caret = document.createRange();
+        if (isEmpty) {
+            caret.setStart(code, 0);
+        } else {
+            caret.setStart(next, 0);
+        }
+        caret.collapse(true);
+        contentArea.focus();
+        selection.removeAllRanges();
+        selection.addRange(caret);
+        contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        return true;
+    },
+
+    /**
+     * Removes an inline <code> wrapper, leaving its text in place.
+     */
+    _unwrapInlineCode: function(codeEl) {
+        const parent = codeEl.parentNode;
+        if (!parent) return;
+        while (codeEl.firstChild) parent.insertBefore(codeEl.firstChild, codeEl);
+        parent.removeChild(codeEl);
+        parent.normalize();
+    },
+
+    /**
+     * Removes a <pre><code> block and turns it back into editable lines.
+     */
+    _unwrapCodeBlock: function(preEl) {
+        const parent = preEl.parentNode;
+        if (!parent) return;
+
+        const selection = this._shadowRoot && this._shadowRoot.getSelection
+            ? this._shadowRoot.getSelection()
+            : window.getSelection();
+        const lines = preEl.textContent.replace(/\u00a0/g, ' ').split('\n');
+        let lastLine = null;
+
+        lines.forEach(line => {
+            const div = document.createElement('div');
+            if (line.length) div.textContent = line;
+            else div.appendChild(document.createElement('br'));
+            parent.insertBefore(div, preEl);
+            lastLine = div;
+        });
+        parent.removeChild(preEl);
+
+        if (lastLine && selection) {
+            const range = document.createRange();
+            if (lastLine.firstChild && lastLine.firstChild.nodeType === Node.TEXT_NODE) {
+                range.setStart(lastLine.firstChild, lastLine.firstChild.nodeValue.length);
+            } else {
+                range.setStart(lastLine, 0);
+            }
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    },
+
+    /**
+     * True when the caret sits on an empty line at the very end of a code block
+     * (i.e. pressing Enter again should leave the block).
+     */
+    _isCaretOnEmptyLastLine: function(pre, range) {
+        if (!range.collapsed) return false;
+
+        const before = document.createRange();
+        before.selectNodeContents(pre);
+        before.setEnd(range.startContainer, range.startOffset);
+        const beforeText = this._rangeToPlainText(before, false);
+        if (beforeText !== '' && !beforeText.endsWith('\n')) return false;
+
+        const after = document.createRange();
+        after.selectNodeContents(pre);
+        after.setStart(range.endContainer, range.endOffset);
+        return this._rangeToPlainText(after, false).trim() === '';
+    },
+
+    /**
+     * Removes the trailing blank line a user created before leaving the block.
+     */
+    _trimCodeBlockTail: function(pre) {
+        const code = pre.querySelector('code') || pre;
+        let node = code.lastChild;
+
+        while (node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const trimmed = node.nodeValue.replace(/\n+$/, '');
+                node.nodeValue = trimmed;
+                if (trimmed !== '') return;
+                const prev = node.previousSibling;
+                node.remove();
+                node = prev;
+                continue;
+            }
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const isBlankBlock = /^(DIV|P)$/.test(node.tagName) && !node.textContent.trim() && !node.querySelector('img, br, hr');
+                if (node.tagName === 'BR' || isBlankBlock) {
+                    const prev = node.previousSibling;
+                    node.remove();
+                    node = prev;
+                    continue;
+                }
+            }
+            return;
+        }
+    },
+
+    /**
+     * Leaves a code block, either by removing an empty block or by adding a
+     * normal paragraph after a block that contains code.
+     */
+    _exitCodeBlock: function(contentArea, pre, keepBlock) {
+        const selection = this._shadowRoot && this._shadowRoot.getSelection
+            ? this._shadowRoot.getSelection()
+            : window.getSelection();
+
+        let target;
+        let caretAtStart;
+
+        if (keepBlock) {
+            this._trimCodeBlockTail(pre);
+            const next = pre.nextElementSibling;
+            if (next && /^(P|DIV)$/.test(next.tagName) && !next.textContent.trim() && !next.querySelector('img, table, hr')) {
+                target = next;
+            } else {
+                target = document.createElement('p');
+                target.appendChild(document.createElement('br'));
+                pre.parentNode.insertBefore(target, pre.nextSibling);
+            }
+            caretAtStart = true;
+        } else {
+            const prev = pre.previousElementSibling;
+            const next = pre.nextElementSibling;
+
+            if (next) {
+                target = next;
+                caretAtStart = true;
+                pre.remove();
+            } else if (prev) {
+                target = prev;
+                caretAtStart = false;
+                pre.remove();
+            } else {
+                target = document.createElement('p');
+                target.appendChild(document.createElement('br'));
+                pre.parentNode.replaceChild(target, pre);
+                caretAtStart = true;
+            }
+        }
+
+        if (!target.firstChild && /^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(target.tagName)) {
+            target.appendChild(document.createElement('br'));
+        }
+
+        if (selection) {
+            const range = document.createRange();
+            if (caretAtStart) {
+                range.setStart(target, 0);
+                range.collapse(true);
+            } else {
+                range.selectNodeContents(target);
+                range.collapse(false);
+            }
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        contentArea.focus();
+        contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    },
+
+    /**
+     * Keeps code blocks behaving like normal blocks: double Enter (or Enter in
+     * an empty block) leaves the block instead of trapping the caret.
+     * Returns true when the event was handled.
+     */
+    _handleCodeBlockKeydown: function(e, contentArea) {
+        if (e.key !== 'Enter' && e.key !== 'Backspace') return false;
+        if (e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return false;
+
+        const selection = this._shadowRoot && this._shadowRoot.getSelection
+            ? this._shadowRoot.getSelection()
+            : window.getSelection();
+        if (!selection || !selection.rangeCount) return false;
+
+        const range = selection.getRangeAt(0);
+        const pre = this._closestIn(range.startContainer, contentArea, 'pre');
+        if (!pre) return false;
+
+        const isEmptyBlock = pre.textContent.replace(/\u00a0/g, '').trim() === '';
+
+        if (e.key === 'Backspace') {
+            if (!isEmptyBlock) return false;
+            this._exitCodeBlock(contentArea, pre, false);
+            return true;
+        }
+
+        // Enter
+        if (e.shiftKey) return false; // Shift+Enter always adds a line
+        if (isEmptyBlock) {
+            this._exitCodeBlock(contentArea, pre, false);
+            return true;
+        }
+        if (this._isCaretOnEmptyLastLine(pre, range)) {
+            this._exitCodeBlock(contentArea, pre, true);
+            return true;
+        }
+        return false;
+    },
+
     _toggleCode: function(shadowRoot) {
         const selection = shadowRoot.getSelection ? shadowRoot.getSelection() : window.getSelection();
         if (!selection || !selection.rangeCount) return;
@@ -1803,70 +2346,56 @@ const yEditor = {
         const contentArea = shadowRoot.querySelector('.yeditor-content');
         if (!contentArea) return;
 
-        const findCodeAncestor = (node) => {
-            let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-            return el ? el.closest('code') : null;
-        };
+        this._shadowRoot = shadowRoot;
 
-        // If collapsed - unwrap if inside code
-        if (range.collapsed) {
-            const codeEl = findCodeAncestor(range.startContainer);
-            if (codeEl) {
-                const parent = codeEl.parentNode;
-                while (codeEl.firstChild) parent.insertBefore(codeEl.firstChild, codeEl);
-                parent.removeChild(codeEl);
-                parent.normalize();
-                contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-                contentArea.focus();
-                this.updateDomPath(shadowRoot, contentArea);
+        const codeEl = this._closestIn(range.startContainer, contentArea, 'code');
+        const preEl = this._closestIn(range.startContainer, contentArea, 'pre');
+
+        // Inside existing code: toggle it off
+        if (preEl || codeEl) {
+            const target = preEl || codeEl;
+            if (target.tagName === 'PRE') {
+                this._unwrapCodeBlock(target);
+            } else {
+                this._unwrapInlineCode(target);
             }
+            contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+            contentArea.focus();
+            this.updateDomPath(shadowRoot, contentArea);
             return;
         }
 
-        // Check if selection is inside the same <code>
-        let ancestorCode = null;
-        const startCode = findCodeAncestor(range.startContainer);
-        const endCode = findCodeAncestor(range.endContainer);
-        if (startCode && startCode === endCode) {
-            ancestorCode = startCode;
-        } else if (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE && range.commonAncestorContainer.closest) {
-            const ca = range.commonAncestorContainer.closest('code');
-            if (ca) ancestorCode = ca;
+        if (range.collapsed) {
+            // Collapsed caret: create an empty, writable code block.
+            this._insertCodeBlock(contentArea, '', range, true);
+            this.updateDomPath(shadowRoot, contentArea);
+            return;
         }
 
-        if (ancestorCode) {
-            // Unwrap
-            const parent = ancestorCode.parentNode;
-            const children = Array.from(ancestorCode.childNodes);
-            children.forEach(child => parent.insertBefore(child, ancestorCode));
-            parent.removeChild(ancestorCode);
-            parent.normalize();
-            try {
-                if (children.length) {
-                    const newRange = document.createRange();
-                    newRange.setStartBefore(children[0]);
-                    newRange.setEndAfter(children[children.length - 1]);
-                    selection.removeAllRanges();
-                    selection.addRange(newRange);
-                }
-            } catch (e) {}
+        // Multi-line selection -> real <pre><code> block (LTR).
+        // Single-line selection -> inline <code>.
+        const startBlock = this._closestBlock(range.startContainer, contentArea);
+        const endBlock = this._closestBlock(range.endContainer, contentArea);
+        const plainText = this._rangeToPlainText(range);
+        const isBlockSelection = startBlock !== endBlock || plainText.includes('\n');
+
+        if (isBlockSelection) {
+            this._insertCodeBlock(contentArea, plainText, range);
         } else {
-            // Wrap in <code>
             try {
-                const codeEl = document.createElement('code');
-                codeEl.appendChild(range.extractContents());
-                range.insertNode(codeEl);
+                const newCode = document.createElement('code');
+                newCode.appendChild(range.extractContents());
+                range.insertNode(newCode);
                 const newRange = document.createRange();
-                newRange.selectNodeContents(codeEl);
+                newRange.selectNodeContents(newCode);
                 selection.removeAllRanges();
                 selection.addRange(newRange);
             } catch (e) {
                 const text = range.toString();
-                const div = document.createElement('div');
-                div.textContent = text;
-                document.execCommand('insertHTML', false, `<code>${div.innerHTML}</code>`);
+                document.execCommand('insertHTML', false, `<code>${this._escapeHTML(text)}</code>`);
             }
         }
+
         contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         contentArea.focus();
         this.updateDomPath(shadowRoot, contentArea);
@@ -1982,7 +2511,7 @@ const yEditor = {
 
                         const sanitizedHtml = DOMPurify.sanitize(protectedElement.outerHTML, { 
                             DATA_ATTR: false,
-                            ADD_ATTR: ['style', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
+                            ADD_ATTR: ['style', 'dir', 'contenteditable', 'data-yeditor-block', 'data-yeditor-type', 'data-yeditor-resizable'],
                             ADD_TAGS: ['div', 'span', 'code', 'pre', 'figure', 'figcaption']
                         });
                         
@@ -2136,6 +2665,96 @@ const yEditor = {
     },
 
     /**
+     * Guarantees the canonical <pre><code>...</code></pre> structure.
+     * Browsers sometimes place typed text directly inside the <pre>; move it
+     * into the <code> element, preserving document order.
+     */
+    _normalizeCodeBlocks: function(container) {
+        if (!container || !container.querySelector('pre')) return;
+        const selection = this._shadowRoot && this._shadowRoot.getSelection
+            ? this._shadowRoot.getSelection()
+            : window.getSelection();
+        let savedRange = null;
+        if (selection && selection.rangeCount) {
+            const live = selection.getRangeAt(0);
+            if (container.contains(live.startContainer)) {
+                savedRange = {
+                    startContainer: live.startContainer,
+                    startOffset: live.startOffset,
+                    endContainer: live.endContainer,
+                    endOffset: live.endOffset
+                };
+            }
+        }
+
+        let moved = false;
+
+        container.querySelectorAll('pre').forEach(pre => {
+            const children = Array.from(pre.childNodes);
+            if (!children.length) return;
+
+            let code = children.find(node => node.nodeType === Node.ELEMENT_NODE && node.tagName === 'CODE') || null;
+            if (!code) {
+                code = document.createElement('code');
+                code.setAttribute('dir', 'ltr');
+                pre.insertBefore(code, pre.firstChild);
+            }
+            pre.setAttribute('dir', 'ltr');
+            code.setAttribute('dir', 'ltr');
+
+            const stray = Array.from(pre.childNodes).filter(node => node !== code);
+            if (!stray.length) return;
+
+            // Keep document order: nodes before <code> are prepended, the rest appended.
+            const preceding = [];
+            const following = [];
+            stray.forEach(node => {
+                if (node.compareDocumentPosition(code) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    preceding.push(node);
+                } else {
+                    following.push(node);
+                }
+            });
+            if (preceding.length) {
+                const fragment = document.createDocumentFragment();
+                preceding.forEach(node => fragment.appendChild(node));
+                code.insertBefore(fragment, code.firstChild);
+            }
+            following.forEach(node => code.appendChild(node));
+            moved = true;
+        });
+
+        // Moving nodes can make the browser collapse the caret; put it back.
+        if (moved && savedRange) {
+            try {
+                const range = document.createRange();
+                range.setStart(savedRange.startContainer, savedRange.startOffset);
+                range.setEnd(savedRange.endContainer, savedRange.endOffset);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } catch (e) { /* the node may have been replaced */ }
+        }
+    },
+
+    /**
+     * Makes code blocks comfortable to edit: no spell-checking or mobile
+     * autocorrect inside code, like a dedicated code editor.
+     * @param {HTMLElement} container The container to search in (contentArea).
+     */
+    _decorateCodeBlocks: function(container) {
+        if (!container) return;
+        const blocks = container.matches && container.matches('pre')
+            ? [container]
+            : Array.from(container.querySelectorAll('pre'));
+        blocks.forEach(pre => {
+            pre.spellcheck = false;
+            pre.setAttribute('autocapitalize', 'off');
+            pre.setAttribute('autocorrect', 'off');
+            pre.setAttribute('autocomplete', 'off');
+        });
+    },
+
+    /**
      * Cleans HTML content for saving by removing internal editor attributes.
      * @param {string} html The raw HTML from contentArea.
      * @returns {string} Cleaned HTML.
@@ -2216,6 +2835,33 @@ const yEditor = {
                 // Remove caption element if empty
                 if (captionEl) captionEl.remove();
                 wrapper.parentNode.replaceChild(img, wrapper);
+            }
+        });
+
+        // Code blocks: always persist LTR direction and real spaces (contenteditable
+        // turns runs of spaces into &nbsp;, which breaks code when it is copied back).
+        tempDiv.querySelectorAll('pre').forEach(pre => {
+            // Direction is kept in the live editor DOM (and applied by the CSS),
+            // but is stripped from the saved markup so code blocks keep the exact
+            // <pre><code>...</code></pre> format used by the site.
+            pre.removeAttribute('dir');
+            pre.querySelectorAll('code').forEach(code => code.removeAttribute('dir'));
+
+            // Editor-only attributes for a calm editing experience (no spellcheck/autocorrect)
+            ['spellcheck', 'autocapitalize', 'autocorrect', 'autocomplete'].forEach(name => {
+                pre.removeAttribute(name);
+            });
+
+            // Browsers use <br> for lines typed inside a code block; store real
+            // newlines so the saved code stays copy-pasteable source code.
+            pre.querySelectorAll('br').forEach(br => br.replaceWith(document.createTextNode('\n')));
+
+            const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
+            let textNode;
+            while ((textNode = walker.nextNode())) {
+                if (textNode.nodeValue.indexOf('\u00a0') !== -1) {
+                    textNode.nodeValue = textNode.nodeValue.replace(/\u00a0/g, ' ');
+                }
             }
         });
 
