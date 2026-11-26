@@ -30,7 +30,7 @@ jobs:
 
       # Step 3: Run the build commands using esbuild
       - name: Build and Minify JavaScript
-        run: npx esbuild src/editor.js --bundle --minify --outfile=dist/editor.min.js --define:VERSION="'${{ steps.version.outputs.VERSION }}'"
+        run: npx esbuild src/editor.js --bundle --minify --outfile=dist/editor.min.js --define:__YEDITOR_VERSION__="'${{ steps.version.outputs.VERSION }}'"
 
       - name: Build and Minify CSS
         run: npx esbuild src/editor.css --minify --outfile=dist/editor.min.css

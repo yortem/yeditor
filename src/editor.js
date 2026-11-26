@@ -1,6 +1,6 @@
 const yEditor = {
-    // Library version (replaced at build time)
-    version: 'VERSION',
+    // Library version (replaced with the real version at build time; 'dev' in source)
+    version: typeof __YEDITOR_VERSION__ !== 'undefined' ? __YEDITOR_VERSION__ : 'dev',
     // Cache for loaded language files
     _loadedTranslations: {},
     // Default fallback translations
@@ -160,19 +160,10 @@ const yEditor = {
         // 5. הגדר את האירועים
         this.setupEventListeners(shadowRoot, toolbar, contentArea, sourceArea, textarea, container);
 
-        // Hide link toolbar when clicking outside the editor
+        // Hide floating toolbars when clicking outside the editor
         document.addEventListener('click', (e) => {
             if (!container.contains(e.target) && !e.composedPath().includes(container)) {
-                this.hideLinkToolbar(shadowRoot);
-                this.hideTableToolbar(shadowRoot);
-                this._customButtons.forEach(config => {
-                    if (config.edit) {
-                        const bubble = shadowRoot.querySelector(`[data-bubble-for="${config.edit.selector}"]`);
-                        if (bubble) {
-                            bubble.remove();
-                        }
-                    }
-                });
+                this.hideAllBubbles(shadowRoot);
             }
         });
 
@@ -496,6 +487,7 @@ const yEditor = {
             contentArea.focus();
         } else {
             // Switch to source view
+            this.hideAllBubbles(shadowRoot);
             sourceArea.value = this._cleanHTML(contentArea.innerHTML);
             contentArea.style.display = 'none';
             sourceArea.style.display = 'block';
@@ -826,6 +818,13 @@ const yEditor = {
         contentArea.addEventListener('blur', () => {
             this._dispatchEvent('yeditor-blur');
         });
+
+        // Keep floating bubbles glued to their anchors while scrolling, so a
+        // table/image bubble never stays behind when the content moves.
+        const repositionBubbles = () => this._repositionBubbles(shadowRoot);
+        contentArea.addEventListener('scroll', repositionBubbles, { passive: true });
+        window.addEventListener('scroll', repositionBubbles, { passive: true });
+        window.addEventListener('resize', repositionBubbles);
 
     },
 
@@ -1216,6 +1215,10 @@ const yEditor = {
 
 
     _createModal: function(title, bodyElement, footerElement) {
+        // A modal lives in the main document while bubbles live in the shadow
+        // DOM; close the bubbles so they never float above the modal.
+        this.hideAllBubbles(this._shadowRoot);
+
         const overlay = document.createElement('div');
         overlay.className = 'yeditor-modal-overlay';
 
@@ -1289,6 +1292,89 @@ const yEditor = {
         document.head.appendChild(styleElement);
     },
 
+    // --- Floating Bubble Positioning ---
+
+    /**
+     * Positions a floating toolbar above its anchor (or below it when there is
+     * no room), clamped to the visible content area. Hides the toolbar when the
+     * anchor has been scrolled out of view.
+     */
+    _placeBubble: function(shadowRoot, toolbar, anchorEl) {
+        if (!toolbar) return;
+        if (!anchorEl || !anchorEl.isConnected) {
+            toolbar.remove();
+            return;
+        }
+
+        const hostRect = shadowRoot.host.getBoundingClientRect();
+        const anchorRect = anchorEl.getBoundingClientRect();
+        const contentArea = shadowRoot.querySelector('.yeditor-content');
+        const contentRect = contentArea ? contentArea.getBoundingClientRect() : hostRect;
+        const margin = 8;
+
+        const visibleTop = Math.max(hostRect.top, contentRect.top);
+        const visibleBottom = Math.min(hostRect.bottom, contentRect.bottom);
+        const visibleLeft = Math.max(hostRect.left, contentRect.left);
+        const visibleRight = Math.min(hostRect.right, contentRect.right);
+        const anchorCenterX = anchorRect.left + anchorRect.width / 2;
+
+        if (anchorRect.bottom < visibleTop || anchorRect.top > visibleBottom ||
+            anchorCenterX < visibleLeft || anchorCenterX > visibleRight) {
+            toolbar.classList.remove('active');
+            toolbar.style.display = 'none';
+            return;
+        }
+        toolbar.style.display = '';
+
+        const toolbarWidth = toolbar.offsetWidth;
+        const toolbarHeight = toolbar.offsetHeight;
+        const halfWidth = toolbarWidth / 2;
+
+        const minTop = visibleTop - hostRect.top + margin;
+        const maxTop = Math.max(minTop, visibleBottom - hostRect.top - toolbarHeight - margin);
+
+        let top = anchorRect.top - hostRect.top - toolbarHeight - margin;
+        if (top < minTop) {
+            const below = anchorRect.bottom - hostRect.top + margin;
+            top = below <= maxTop ? below : minTop;
+        }
+        top = Math.min(top, maxTop);
+
+        let left = anchorCenterX - hostRect.left;
+        left = Math.max(halfWidth + margin, Math.min(left, hostRect.width - halfWidth - margin));
+
+        toolbar.style.top = `${Math.round(top)}px`;
+        toolbar.style.left = `${Math.round(left)}px`;
+        toolbar.classList.add('active');
+    },
+
+    /**
+     * Keeps every open bubble glued to its anchor while the page or the editor
+     * content scrolls, so a table/image bubble never stays behind.
+     */
+    _repositionBubbles: function(shadowRoot) {
+        if (!shadowRoot) return;
+        const contentArea = shadowRoot.querySelector('.yeditor-content');
+        if (contentArea && contentArea.style.display === 'none') return;
+
+        shadowRoot.querySelectorAll('.link-toolbar, .table-toolbar, .image-toolbar, [data-bubble-for]').forEach(toolbar => {
+            if (toolbar._yeditorAnchor) {
+                this._placeBubble(shadowRoot, toolbar, toolbar._yeditorAnchor);
+            }
+        });
+    },
+
+    /**
+     * Removes every floating toolbar/bubble from the editor.
+     */
+    hideAllBubbles: function(shadowRoot) {
+        if (!shadowRoot) return;
+        this.hideLinkToolbar(shadowRoot);
+        this.hideTableToolbar(shadowRoot);
+        this.hideImageToolbar(shadowRoot);
+        shadowRoot.querySelectorAll('[data-bubble-for]').forEach(bubble => bubble.remove());
+    },
+
     showLinkToolbar: function(shadowRoot, linkElement) {
         this.hideLinkToolbar(shadowRoot); // Hide any existing toolbar
 
@@ -1311,30 +1397,10 @@ const yEditor = {
 
         toolbar.append(linkDisplay, editButton, unlinkButton);
         shadowRoot.appendChild(toolbar);
+        toolbar._yeditorAnchor = linkElement;
 
         // Position the toolbar after it's rendered and its dimensions are available
-        requestAnimationFrame(() => {
-            const linkRect = linkElement.getBoundingClientRect();
-            const hostRect = shadowRoot.host.getBoundingClientRect(); // The editor container
-
-            // Calculate toolbar position relative to the host element
-            const toolbarHeight = toolbar.offsetHeight;
-            const toolbarWidth = toolbar.offsetWidth;
-            const toolbarTop = linkRect.top - hostRect.top - toolbarHeight - 5;
-            let toolbarLeft = linkRect.left - hostRect.left + (linkRect.width / 2);
-
-            // Boundary checking
-            if (toolbarLeft - (toolbarWidth / 2) < 0) {
-                toolbarLeft = toolbarWidth / 2 + 5;
-            } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
-                toolbarLeft = hostRect.width - (toolbarWidth / 2) - 5;
-            }
-
-            toolbar.style.top = `${toolbarTop}px`;
-            toolbar.style.left = `${toolbarLeft}px`;
-
-            toolbar.classList.add('active');
-        });
+        requestAnimationFrame(() => this._placeBubble(shadowRoot, toolbar, linkElement));
 
         editButton.onclick = () => {
             const currentData = {
@@ -1349,6 +1415,7 @@ const yEditor = {
                     } else {
                         linkElement.removeAttribute('target');
                     }
+                    this._syncContent(shadowRoot);
                 }
             });
             this.hideLinkToolbar(shadowRoot);
@@ -1392,27 +1459,9 @@ const yEditor = {
 
         toolbar.append(editButton, addRowButton);
         shadowRoot.appendChild(toolbar);
+        toolbar._yeditorAnchor = tableElement;
 
-        requestAnimationFrame(() => {
-            const tableRect = tableElement.getBoundingClientRect();
-            const hostRect = shadowRoot.host.getBoundingClientRect();
-
-            const toolbarHeight = toolbar.offsetHeight;
-            const toolbarWidth = toolbar.offsetWidth;
-            const toolbarTop = tableRect.top - hostRect.top - toolbarHeight - 5;
-            let toolbarLeft = tableRect.left - hostRect.left + (tableRect.width / 2);
-
-            // Boundary checking
-            if (toolbarLeft - (toolbarWidth / 2) < 0) {
-                toolbarLeft = toolbarWidth / 2 + 5;
-            } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
-                toolbarLeft = hostRect.width - (toolbarWidth / 2) - 5;
-            }
-
-            toolbar.style.top = `${toolbarTop}px`;
-            toolbar.style.left = `${toolbarLeft}px`;
-            toolbar.classList.add('active');
-        });
+        requestAnimationFrame(() => this._placeBubble(shadowRoot, toolbar, tableElement));
 
         addRowButton.onclick = () => {
             const tbody = tableElement.querySelector('tbody');
@@ -1422,6 +1471,7 @@ const yEditor = {
             for (let i = 0; i < colCount; i++) {
                 newRow.insertCell(i).innerHTML = '&nbsp;';
             }
+            this._syncContent(shadowRoot);
         };
 
         editButton.onclick = () => {
@@ -1626,26 +1676,9 @@ const yEditor = {
         toolbar.append(editButton, sep1, alignLeftBtn, alignCenterBtn, alignRightBtn, sep2, sizeSmallBtn, sizeMediumBtn, sizeLargeBtn, deleteButton);
 
         shadowRoot.appendChild(toolbar);
+        toolbar._yeditorAnchor = wrapperElement;
 
-        requestAnimationFrame(() => {
-            const wrapperRect = wrapperElement.getBoundingClientRect();
-            const hostRect = shadowRoot.host.getBoundingClientRect();
-
-            const toolbarHeight = toolbar.offsetHeight;
-            const toolbarWidth = toolbar.offsetWidth;
-            const toolbarTop = wrapperRect.top - hostRect.top - toolbarHeight - 5;
-            let toolbarLeft = wrapperRect.left - hostRect.left + (wrapperRect.width / 2);
-
-            if (toolbarLeft - (toolbarWidth / 2) < 0) {
-                toolbarLeft = toolbarWidth / 2 + 5;
-            } else if (toolbarLeft + (toolbarWidth / 2) > hostRect.width) {
-                toolbarLeft = hostRect.width - (toolbarWidth / 2) - 5;
-            }
-
-            toolbar.style.top = `${toolbarTop}px`;
-            toolbar.style.left = `${toolbarLeft}px`;
-            toolbar.classList.add('active');
-        });
+        requestAnimationFrame(() => this._placeBubble(shadowRoot, toolbar, wrapperElement));
 
         editButton.onclick = () => {
             const currentAlignment = wrapperElement.classList.contains('align-left') ? 'left' : wrapperElement.classList.contains('align-right') ? 'right' : wrapperElement.classList.contains('align-center') ? 'center' : '';
@@ -1700,6 +1733,7 @@ const yEditor = {
         [alignLeftBtn, alignCenterBtn, alignRightBtn].forEach(btn => {
             btn.onclick = () => {
                 this._setImageAlignment(wrapperElement, btn.dataset.align);
+                this._syncContent(shadowRoot);
             };
         });
 
@@ -1714,6 +1748,7 @@ const yEditor = {
                 wrapperElement.style.height = `${newW * ratio}px`;
                 imgElement.style.width = `${newW}px`;
                 imgElement.style.height = `${newW * ratio}px`;
+                this._syncContent(shadowRoot);
             };
         });
 
@@ -2415,14 +2450,9 @@ const yEditor = {
         toolbar.appendChild(editButton);
 
         shadowRoot.appendChild(toolbar);
+        toolbar._yeditorAnchor = element;
 
-        requestAnimationFrame(() => {
-            const elementRect = element.getBoundingClientRect();
-            const hostRect = shadowRoot.host.getBoundingClientRect();
-            toolbar.style.top = `${elementRect.top - hostRect.top - toolbar.offsetHeight - 5}px`;
-            toolbar.style.left = `${elementRect.left - hostRect.left + (elementRect.width / 2)}px`;
-            toolbar.classList.add('active');
-        });
+        requestAnimationFrame(() => this._placeBubble(shadowRoot, toolbar, element));
 
         editButton.onclick = async () => {
             const initialData = await config.edit.onOpen(element);
@@ -2631,6 +2661,15 @@ const yEditor = {
             okButton.onclick = () => { modal.remove(); resolve(isMultiple ? selectedItems : selectedItems[0] || null); };
             cancelButton.onclick = () => { modal.remove(); resolve(null); };
         });
+    },
+
+    /**
+     * Fires the content-area input event so the original textarea, the change
+     * event and the word count stay in sync after direct DOM edits.
+     */
+    _syncContent: function(shadowRoot) {
+        const contentArea = shadowRoot && shadowRoot.querySelector('.yeditor-content');
+        if (contentArea) contentArea.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
     },
 
     _dispatchEvent: function(eventName, detail = {}) {

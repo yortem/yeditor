@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The code button now uses the clean `<>` icon, and the HTML source view moved out of the toolbar to a labeled `HTML` toggle in the status bar (next to the word count), so "view source" and "insert code" are no longer confused
 ### Fixed
+- Floating bubbles (link, table, image and custom-block toolbars) now follow their anchor when the page or the editor content scrolls, stay inside the visible editor area instead of being clipped at the top, and hide when the anchor scrolls out of view
+- Image toolbar now also closes when clicking outside the editor, and all floating bubbles close when a modal opens — the image toolbar no longer floats above the image-properties modal
+- Table "add row", image alignment/size buttons and link editing now sync the original textarea and fire `yeditor-change`
+- `yEditor.version` now reports the actual release version in the built files (previously the literal `VERSION`); the source/demo reports `dev`
 - Code is always left-to-right (also in RTL editors): `direction: ltr` + `unicode-bidi: isolate` for `pre`/`code`, while the saved markup stays exactly `<pre><code>...</code></pre>`
 - Typed text can no longer land outside the `<code>` element inside a `<pre>` (structure is normalized on input)
 - `<br>` line breaks typed inside a code block are saved as real newlines, and `&nbsp;` is converted back to spaces so code stays copy-pasteable
